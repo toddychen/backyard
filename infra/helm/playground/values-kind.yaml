@@ -1,0 +1,20 @@
+replicas: 2
+
+image:
+  repository: ghcr.io/<username>/service-playground
+  tag: <git-sha>
+  # For kind dev, recommended workflow:
+  # 1) `docker pull ghcr.io/<username>/service-playground:<git-sha>`
+  # 2) `kind load docker-image ghcr.io/<username>/service-playground:<git-sha> --name <cluster-name>`
+  # 3) use Never to avoid cluster image pulls.
+  pullPolicy: Never
+
+springProfile: dev
+
+service:
+  type: NodePort
+  port: 8080
+
+ingress:
+  enabled: false
+

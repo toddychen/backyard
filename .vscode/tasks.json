@@ -2,14 +2,14 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "playground: run (local)",
+      "label": "playground: run (dev)",
       "type": "shell",
       "command": "./mvnw",
       "args": [
         "-f",
         "services/playground/pom.xml",
         "spring-boot:run",
-        "-Dspring-boot.run.profiles=local"
+        "-Dspring-boot.run.profiles=dev"
       ],
       "isBackground": true,
       "problemMatcher": []

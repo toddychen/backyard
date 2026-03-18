@@ -25,9 +25,11 @@ spec:
             - name: http
               containerPort: 8080
               protocol: TCP
+          {{- if .Values.springProfile }}
           env:
             - name: SPRING_PROFILES_ACTIVE
-              value: {{ default "" .Values.springProfile | quote }}
+              value: {{ .Values.springProfile | quote }}
+          {{- end }}
           livenessProbe:
             httpGet:
               path: {{ .Values.livenessProbe.path }}

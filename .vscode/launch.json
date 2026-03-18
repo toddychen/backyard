@@ -2,13 +2,13 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "playground: run (local)",
+      "name": "playground: run (dev)",
       "type": "pwa-node",
       "request": "launch",
       "runtimeExecutable": "bash",
       "runtimeArgs": [
         "-lc",
-        "./mvnw -f services/playground/pom.xml spring-boot:run -Dspring-boot.run.profiles=local"
+        "./mvnw -f services/playground/pom.xml spring-boot:run -Dspring-boot.run.profiles=dev"
       ],
       "cwd": "${workspaceFolder}",
       "console": "integratedTerminal"

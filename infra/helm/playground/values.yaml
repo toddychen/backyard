@@ -5,6 +5,8 @@ image:
   tag: dev
   pullPolicy: Never
 
+springProfile: dev
+
 service:
   type: ClusterIP
   port: 8080
