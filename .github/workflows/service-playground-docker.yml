@@ -1,0 +1,52 @@
+name: service-playground-docker
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "services/playground/**"
+      - ".github/workflows/service-playground-docker.yml"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      - name: Build jar (skip tests)
+        run: ./mvnw -f services/playground/pom.xml -B -DskipTests package
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: services/playground
+          file: services/playground/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/service-playground:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+

@@ -1,7 +1,7 @@
 replicas: 3
 
 image:
-  repository: ghcr.io/<username>/playground
+  repository: ghcr.io/<username>/service-playground
   tag: <git-sha>
   pullPolicy: Always
 

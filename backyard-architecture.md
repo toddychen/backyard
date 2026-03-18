@@ -173,7 +173,7 @@ GitHub Actions 触发（仅当 services/playground/** 有变动）
     ↓
 mvn test
     ↓
-docker build → push to ghcr.io/<username>/playground:<git-sha>
+docker build → push to ghcr.io/<username>/service-playground:<git-sha>
     ↓
 helm upgrade（deploy to GKE）
 ```
@@ -185,8 +185,8 @@ helm upgrade（deploy to GKE）
 | 环境 | Tag | 策略 |
 |---|---|---|
 | Local dev | `playground:dev` | 固定 tag 覆盖，`imagePullPolicy: Never` |
-| CI build | `playground:<git-sha>` | 每个 commit 唯一，push 到 GHCR |
-| GCP production | `playground:<git-sha>` | Helm values 指定具体 tag |
+| CI build | `service-playground:<git-sha>` | 每个 commit 唯一，push 到 GHCR |
+| GCP production | `service-playground:<git-sha>` | Helm values 指定具体 tag |
 
 ---
 
@@ -236,7 +236,7 @@ readinessProbe:
 
 ```yaml
 # values-gcp.yaml (GCP overrides)
-image: ghcr.io/<username>/playground:<git-sha>
+image: ghcr.io/<username>/service-playground:<git-sha>
 replicas: 3
 imagePullPolicy: Always
 ```
