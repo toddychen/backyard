@@ -1,0 +1,42 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "playground: run (local)",
+      "type": "pwa-node",
+      "request": "launch",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": [
+        "-lc",
+        "./mvnw -f services/playground/pom.xml spring-boot:run -Dspring-boot.run.profiles=local"
+      ],
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "playground: test",
+      "type": "pwa-node",
+      "request": "launch",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": [
+        "-lc",
+        "./mvnw -f services/playground/pom.xml -B test"
+      ],
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "playground: package (skipTests)",
+      "type": "pwa-node",
+      "request": "launch",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": [
+        "-lc",
+        "./mvnw -f services/playground/pom.xml -B package -DskipTests"
+      ],
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal"
+    }
+  ]
+}
+

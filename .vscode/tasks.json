@@ -1,0 +1,44 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "playground: run (local)",
+      "type": "shell",
+      "command": "./mvnw",
+      "args": [
+        "-f",
+        "services/playground/pom.xml",
+        "spring-boot:run",
+        "-Dspring-boot.run.profiles=local"
+      ],
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "playground: test",
+      "type": "shell",
+      "command": "./mvnw",
+      "args": [
+        "-f",
+        "services/playground/pom.xml",
+        "-B",
+        "test"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "playground: package (skipTests)",
+      "type": "shell",
+      "command": "./mvnw",
+      "args": [
+        "-f",
+        "services/playground/pom.xml",
+        "-B",
+        "package",
+        "-DskipTests"
+      ],
+      "problemMatcher": []
+    }
+  ]
+}
+

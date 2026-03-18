@@ -1,0 +1,7 @@
+replicas: 3
+
+image:
+  repository: ghcr.io/<username>/playground
+  tag: <git-sha>
+  pullPolicy: Always
+

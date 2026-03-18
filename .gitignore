@@ -1,0 +1,11 @@
+# macOS
+.DS_Store
+
+# Maven
+**/target/
+**/*.log
+
+# Java
+**/*.class
+**/hs_err_pid*
+
