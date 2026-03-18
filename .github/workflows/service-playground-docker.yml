@@ -42,7 +42,7 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Print build platforms
-        run: echo 'Building for platforms: ${{ env.TARGET_PLATFORMS }}'
+        run: echo "Building for platforms $TARGET_PLATFORMS"
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
