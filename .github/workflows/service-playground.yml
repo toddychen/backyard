@@ -12,10 +12,6 @@ on:
       - "services/playground/**"
       - ".github/workflows/service-playground.yml"
 
-env:
-  # GitHub is deprecating the Node.js 20 runtime for actions; force Node.js 24 now to avoid warnings.
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
-
 permissions:
   contents: read
   actions: read
@@ -24,6 +20,9 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
+    env:
+      # GitHub is deprecating the Node.js 20 runtime for actions; force Node.js 24 now to avoid warnings.
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
     defaults:
       run:
         working-directory: .
