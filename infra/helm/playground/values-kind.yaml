@@ -12,6 +12,8 @@ springProfile: dev
 service:
   type: NodePort
   port: 8080
+  # Fix NodePort for stable local access (30000-32767 by default).
+  nodePort: 30001
 
 ingress:
   enabled: false

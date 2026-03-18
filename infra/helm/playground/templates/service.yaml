@@ -14,5 +14,8 @@ spec:
     - name: http
       port: {{ .Values.service.port }}
       targetPort: 8080
+      {{- if .Values.service.nodePort }}
+      nodePort: {{ .Values.service.nodePort }}
+      {{- end }}
       protocol: TCP
 
