@@ -2,6 +2,8 @@ name: service-playground-ci
 
 on:
   push:
+    branches:
+      - main
     paths:
       - "services/playground/**"
       - ".github/workflows/service-playground.yml"
@@ -10,9 +12,17 @@ on:
       - "services/playground/**"
       - ".github/workflows/service-playground.yml"
 
+permissions:
+  contents: read
+  actions: read
+  checks: write
+
 jobs:
   test:
     runs-on: ubuntu-latest
+    env:
+      # GitHub is deprecating the Node.js 20 runtime for actions; force Node.js 24 now to avoid warnings.
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
     defaults:
       run:
         working-directory: .
@@ -25,4 +35,15 @@ jobs:
           cache: maven
       - name: Test
         run: ./mvnw -f services/playground/pom.xml -B test
+
+      - name: Test Report (JUnit)
+        if: ${{ !cancelled() }}
+        uses: dorny/test-reporter@v2
+        with:
+          name: JUnit Tests
+          path: services/playground/target/surefire-reports/TEST-*.xml
+          reporter: java-junit
+          fail-on-empty: "false"
+          max-annotations: "50"
+          use-actions-summary: "true"
 
