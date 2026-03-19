@@ -10,7 +10,7 @@ on:
   workflow_dispatch: {}
 
 permissions:
-  contents: read
+  contents: write
   packages: write
 
 jobs:
@@ -21,6 +21,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v5
+        with:
+          persist-credentials: true
 
       - uses: actions/setup-java@v5
         with:
@@ -55,4 +57,23 @@ jobs:
             ghcr.io/${{ github.repository_owner }}/service-playground:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Update stage/prod image tags in git
+        run: |
+          set -euo pipefail
+          SHA="${GITHUB_SHA}"
+
+          python3 utils/update-helm-image-tag.py \
+            --sha "${SHA}" \
+            --file infra/helm/playground/values-stage.yaml \
+            --file infra/helm/playground/values-prod.yaml
+
+          if [[ -n "$(git status --porcelain)" ]]; then
+            git add infra/helm/playground/values-stage.yaml infra/helm/playground/values-prod.yaml
+            git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+              commit -m "chore(playground): bump stage/prod image tag to ${SHA}"
+            git push
+          else
+            echo "No changes to commit."
+          fi
 
