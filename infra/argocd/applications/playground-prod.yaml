@@ -1,0 +1,29 @@
+# Argo CD Application: playground on GCP prod
+# Apply to the cluster where Argo CD runs: kubectl apply -f infra/argocd/applications/playground-prod.yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: playground-prod
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/toddychen/backyard.git
+    targetRevision: main
+    path: infra/helm/playground
+    helm:
+      valueFiles:
+        - values.yaml
+        - values-prod.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: playground-prod
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+  revisionHistoryLimit: 10

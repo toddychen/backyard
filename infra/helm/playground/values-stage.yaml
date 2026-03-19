@@ -1,0 +1,27 @@
+# Stage environment on GCP (Argo CD syncs this)
+# Update image.tag to the desired git SHA to promote or revert.
+
+replicas: 1
+
+image:
+  repository: ghcr.io/toddychen/service-playground
+  tag: "REPLACE_WITH_GIT_SHA"  # Set to git SHA for promote; set to previous SHA to revert
+  pullPolicy: Always
+
+# stage profile → logback uses !dev → JSON logs, INFO level
+springProfile: stage
+
+service:
+  type: ClusterIP
+  port: 8080
+
+ingress:
+  enabled: true
+  className: "gce"
+  annotations: {}
+  hosts:
+    - host: ""  # Set stage hostname, e.g. playground-stage.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []

@@ -1,0 +1,30 @@
+# Argo CD Application: playground on GCP stage
+# Apply to the cluster where Argo CD runs: kubectl apply -f infra/argocd/applications/playground-stage.yaml
+# Ensure repoURL and targetRevision match your Git remote (e.g. main branch).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: playground-stage
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/toddychen/backyard.git
+    targetRevision: main
+    path: infra/helm/playground
+    helm:
+      valueFiles:
+        - values.yaml
+        - values-stage.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: playground-stage
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+  revisionHistoryLimit: 10

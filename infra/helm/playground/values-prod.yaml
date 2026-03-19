@@ -1,0 +1,27 @@
+# Prod environment on GCP (Argo CD syncs this)
+# Update image.tag to the desired git SHA to promote or revert.
+
+replicas: 2
+
+image:
+  repository: ghcr.io/toddychen/service-playground
+  tag: "REPLACE_WITH_GIT_SHA"  # Set to git SHA for promote; set to previous SHA to revert
+  pullPolicy: Always
+
+# prod profile → logback uses !dev → JSON logs, INFO level
+springProfile: prod
+
+service:
+  type: ClusterIP
+  port: 8080
+
+ingress:
+  enabled: true
+  className: "gce"
+  annotations: {}
+  hosts:
+    - host: ""  # Set prod hostname, e.g. playground.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []

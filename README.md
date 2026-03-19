@@ -6,7 +6,7 @@ This repo is a monorepo used to evolve a “production-like” Kubernetes setup:
 - Local development with `kind` + `Helm`
 - CI validation (JUnit test results)
 - Container build + publish to **GHCR**
-- (Planned) GitOps-style deploy to GCP with **Argo CD + Helm**
+- GitOps deploy to GCP with **Argo CD + Helm** (stage & prod, 2 replicas each)
 
 ## Repo Layout
 
@@ -17,11 +17,16 @@ backyard/
 ├── infra/
 │   ├── kind/
 │   │   └── cluster-config.yaml              # kind cluster topology + host port mapping
-│   └── helm/
-│       └── playground/                     # Helm chart for playground
+│   ├── helm/
+│   │   └── playground/                       # Helm chart (values-stage.yaml, values-prod.yaml)
+│   └── argocd/
+│       └── applications/                     # Argo CD Application manifests for GCP
+│           ├── playground-stage.yaml
+│           └── playground-prod.yaml
 ├── scripts/
-│   ├── deploy-service-playground-kind.sh  # Deploy to local kind
-│   └── log-service-playground-kind.sh     # Stream logs from both replicas, filter by level
+│   ├── deploy-service-playground-kind.sh    # Deploy to local kind
+│   ├── log-service-playground-kind.sh       # Stream logs from both replicas, filter by level
+│   └── set-playground-image-tag.sh           # Set image tag for GCP promote/revert
 ├── .github/workflows/
 │   ├── service-playground.yml             # PR build: run tests + publish junit summary to Checks
 │   └── service-playground-docker.yml     # main push: build multi-arch image and push to GHCR
@@ -32,8 +37,8 @@ backyard/
 
 We use **namespace** to separate environments in Kubernetes:
 - `dev`: local kind now uses namespace `playground-dev`
-- `stage`: reserved (to be added with `values-stage.yaml` / namespace `playground-stage`)
-- `prod`: reserved (to be added with `values-prod.yaml` / namespace `playground-prod`)
+- **stage**: GCP stage uses namespace `playground-stage` and `values-stage.yaml` (2 replicas)
+- **prod**: GCP prod uses namespace `playground-prod` and `values-prod.yaml` (2 replicas)
 
 Spring profile currently uses:
 - `dev`: local readable console logs + DEBUG-friendly behavior
@@ -157,6 +162,30 @@ curl "http://127.0.0.1:30001/api/echo?message=hello&from=myself"
 ./scripts/deploy-service-playground-kind.sh <git-sha>
 ```
 
+## GCP Deploy (Argo CD + Helm)
+
+Stage runs 1 replica and prod runs 2 replicas. Argo CD syncs from this repo; the image tag is in the values files so you can **promote** (new SHA) or **revert** (previous SHA) by changing Git and letting Argo CD sync.
+
+**Prerequisites:** GKE cluster with Argo CD installed; Argo CD has access to this Git repo.
+
+**Bootstrap (one-time):** With `kubectl` pointing at GKE:
+```bash
+kubectl apply -f infra/argocd/applications/playground-stage.yaml
+kubectl apply -f infra/argocd/applications/playground-prod.yaml
+```
+
+**Promote (deploy new image):**
+```bash
+./scripts/set-playground-image-tag.sh <git-sha> [stage|prod|both]
+git add infra/helm/playground/values-*.yaml && git commit -m "chore(playground): set image to <git-sha>" && git push
+```
+
+**Revert (roll back):** Run the same script with the **previous** Git SHA, then commit and push. Argo CD will sync and roll the Deployment back.
+
+Before first deploy, replace `REPLACE_WITH_GIT_SHA` in `values-stage.yaml` and `values-prod.yaml` with a real SHA (e.g. via the script above). Set `ingress.hosts[0].host` in each file when you have stage/prod hostnames.
+
+---
+
 ## Future Work / Placeholders (Pre-reserved)
 
 ### Additional services
@@ -174,8 +203,10 @@ We’ll likely follow the same patterns:
 - separate Helm chart (or shared umbrella chart)
 - environment-driven values for dev/stage/prod
 
-### GCP GitOps plan (Argo CD + Helm)
-- We will store Helm values per environment (dev/stage/prod)
-- Argo CD will reconcile those values into a GKE cluster namespaces
-- Image tags will be driven by `${git-sha}` produced by CI
+### GCP Deploy (Argo CD + Helm) — implemented
+
+- Stage runs 1 replica and prod runs 2 replicas; Argo CD syncs from this repo.
+- **Promote**: run `./scripts/set-playground-image-tag.sh <git-sha> [stage|prod|both]`, commit and push; Argo CD syncs.
+- **Revert**: run the same script with the previous SHA, commit and push.
+- Bootstrap: `kubectl apply -f infra/argocd/applications/playground-stage.yaml` (and `playground-prod.yaml`) on the GKE cluster where Argo CD runs.
 
