@@ -17,8 +17,9 @@ service:
 
 ingress:
   enabled: true
-  className: "gce"
-  annotations: {}
+  className: ""
+  annotations:
+    kubernetes.io/ingress.class: "gce"
   hosts:
     - host: ""  # Set prod hostname, e.g. playground.example.com
       paths:
