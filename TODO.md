@@ -203,6 +203,28 @@ Add locale support so the service can return localized content and pass locale c
 
 ---
 
+## API Documentation (Swagger / OpenAPI)
+
+Add Swagger UI and OpenAPI spec generation so all API endpoints are self-documented and explorable in a browser.
+
+**What to implement:**
+- Integrate `springdoc-openapi` to auto-generate an OpenAPI 3 spec from controllers and DTOs
+- Expose Swagger UI at `/swagger-ui.html` for interactive exploration
+- Annotate controllers and models with `@Operation`, `@ApiResponse`, `@Schema` where auto-generation is insufficient
+
+**What needs to be done:**
+- Add `springdoc-openapi-starter-webmvc-ui` dependency to `pom.xml`
+- Expose the Swagger UI and OpenAPI JSON endpoints (add to actuator exposure or a separate path)
+- Review and tune generated spec: descriptions, response codes, example values
+- Decide whether to include Swagger UI in stage/prod or only in dev/internal
+
+**Goal:**
+- Make the API self-documenting for developers and consumers
+- Enable easy manual testing of endpoints via Swagger UI
+- Generate an OpenAPI spec that can be shared or used for client code generation
+
+---
+
 ## Message Queue Service
 
 Introduce a distributed message queue to decouple services, handle async workloads, and absorb traffic spikes.

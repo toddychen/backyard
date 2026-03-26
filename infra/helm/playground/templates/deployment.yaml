@@ -39,6 +39,8 @@ spec:
               value: {{ .Values.gcpProjectId | quote }}
             {{- end }}
             {{- if .Values.otlpEndpoint }}
+            - name: MANAGEMENT_OPENTELEMETRY_TRACING_EXPORT_ENABLED
+              value: "true"
             - name: MANAGEMENT_OPENTELEMETRY_TRACING_EXPORT_OTLP_ENDPOINT
               value: {{ .Values.otlpEndpoint | quote }}
             {{- end }}

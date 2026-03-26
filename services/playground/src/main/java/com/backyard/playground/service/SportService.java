@@ -1,6 +1,9 @@
 package com.backyard.playground.service;
 
 import java.util.List;
+import java.util.Objects;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,18 +26,44 @@ public class SportService {
     }
 
     public List<Game> getTeamGames(String teamId, int nextX, int lastX) {
-        log.info("fetching games for teamId='{}' next={} last={}", teamId, nextX, lastX);
         List<YahooGame> games = yahooSportsClient.getTeamGames(teamId, nextX, lastX);
         if (games == null)
             return List.of();
-        return games.stream().map(Game::from).toList();
+        return games.stream()
+                .map(g -> yahooSportsClient.getGameDetails(g.gameId()))
+                .filter(Objects::nonNull)
+                .map(Game::from)
+                .toList();
+    }
+
+    public List<Game> getTeamGamesParallel(String teamId, int nextX, int lastX) {
+        List<YahooGame> games = yahooSportsClient.getTeamGames(teamId, nextX, lastX);
+        if (games == null)
+            return List.of();
+        try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
+            List<Future<YahooGame>> futures = games.stream()
+                    .map(g -> executor.submit(
+                            () -> yahooSportsClient.getGameDetails(g.gameId())))
+                    .toList();
+            return futures.stream()
+                    .map(f -> {
+                        try {
+                            return f.get();
+                        } catch (Exception e) {
+                            log.warn("failed to fetch game details", e);
+                            return null;
+                        }
+                    })
+                    .filter(Objects::nonNull)
+                    .map(Game::from)
+                    .toList();
+        }
     }
 
     // unless: skip caching null results (e.g. game not found) — avoids
     // storing a transient absence that could mask a later valid response
     @Cacheable(value = CacheConfig.CACHE_GAME_DETAILS, key = "#gameId", unless = "#result == null")
     public Game getGameDetails(String gameId) {
-        log.info("fetching game details for gameId='{}'", gameId);
         YahooGame game = yahooSportsClient.getGameDetails(gameId);
         return game == null ? null : Game.from(game);
     }

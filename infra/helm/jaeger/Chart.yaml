@@ -1,6 +1,6 @@
 apiVersion: v2
 name: jaeger
-description: Jaeger all-in-one for local distributed tracing (Kind dev only)
+description: Jaeger for local distributed tracing (Kind dev only)
 type: application
 version: 0.1.0
-appVersion: "1.76.0"
+appVersion: "2.16.0"

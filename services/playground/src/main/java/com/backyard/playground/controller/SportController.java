@@ -23,8 +23,11 @@ public class SportController extends BaseController {
     public ResponseEntity<Object> getTeamGames(
             @PathVariable("teamId") String teamId,
             @RequestParam(value = "next_x", defaultValue = "2") int nextX,
-            @RequestParam(value = "last_x", defaultValue = "2") int lastX) {
-        return ok(sportService.getTeamGames(teamId, nextX, lastX));
+            @RequestParam(value = "last_x", defaultValue = "2") int lastX,
+            @RequestParam(value = "parallel", defaultValue = "false") boolean parallel) {
+        return ok(parallel
+                ? sportService.getTeamGamesParallel(teamId, nextX, lastX)
+                : sportService.getTeamGames(teamId, nextX, lastX));
     }
 
     @GetMapping(value = "/game/{gameId}/details", version = "1+")

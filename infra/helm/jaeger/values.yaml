@@ -1,6 +1,6 @@
 image:
-  repository: jaegertracing/all-in-one
-  tag: "1.76.0"
+  repository: jaegertracing/jaeger
+  tag: "2.16.0"
   pullPolicy: IfNotPresent
 
 service:

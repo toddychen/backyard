@@ -31,9 +31,5 @@ spec:
             - name: otlp-grpc
               containerPort: {{ .Values.service.otlpGrpcPort }}
               protocol: TCP
-          env:
-            # Required in v1 to enable the OTLP receiver on ports 4317/4318
-            - name: COLLECTOR_OTLP_ENABLED
-              value: "true"
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
