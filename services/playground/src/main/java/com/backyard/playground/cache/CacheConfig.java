@@ -13,8 +13,7 @@ import org.springframework.context.annotation.Configuration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.cache.Cache;
+import io.micrometer.observation.ObservationRegistry;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.Expiry;
@@ -28,26 +27,19 @@ public class CacheConfig {
     public static final String CACHE_POLLEN = "pollen";
     public static final String CACHE_GAME_DETAILS = "game-details";
 
-    // Enable in dev via cache.diagnostic.enabled=true — off by default so no
-    // wrapper overhead in stage/prod
-    @Value("${cache.diagnostic.enabled:false}")
-    private boolean cacheLoggingEnabled;
-
     @Bean
-    public CacheManager cacheManager() {
+    public CacheManager cacheManager(ObservationRegistry observationRegistry) {
         SimpleCacheManager manager = new SimpleCacheManager();
         manager.setCaches(List.of(
                 // Pollen data from Ambee updates a few times per day — 10 min local TTL is safe
-                diagnosticWrap(buildCache(CACHE_POLLEN, 100, 10, TimeUnit.MINUTES)),
+                instrument(buildCache(CACHE_POLLEN, 100, 10, TimeUnit.MINUTES), observationRegistry),
                 // Game details TTL varies: 10s when game is live, 60s otherwise (via Expirable)
-                diagnosticWrap(buildCacheWithDynamicTtl(CACHE_GAME_DETAILS, 100))));
+                instrument(buildCacheWithDynamicTtl(CACHE_GAME_DETAILS, 100), observationRegistry)));
         return manager;
     }
 
-    // Wraps a cache with hit/miss logging when cache.diagnostic.enabled=true.
-    // Returns the cache unwrapped in stage/prod to avoid any overhead.
-    private Cache diagnosticWrap(CaffeineCache cache) {
-        return cacheLoggingEnabled ? new DiagnosticCache(cache) : cache;
+    private InstrumentedCache instrument(CaffeineCache cache, ObservationRegistry observationRegistry) {
+        return new InstrumentedCache(cache, observationRegistry);
     }
 
     /**

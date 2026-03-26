@@ -11,10 +11,8 @@ import io.micrometer.context.ContextSnapshotFactory;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
-import com.backyard.playground.cache.CacheConfig;
 import com.backyard.playground.client.YahooSportsClient;
 import com.backyard.playground.data.api.yahoo.YahooGame;
 import com.backyard.playground.data.sport.game.Game;
@@ -24,32 +22,36 @@ public class SportService {
     private static final Logger log = LoggerFactory.getLogger(SportService.class);
 
     private final YahooSportsClient yahooSportsClient;
+    private final GameService gameService;
     private final ContextSnapshotFactory contextSnapshotFactory = ContextSnapshotFactory.builder().build();
 
-    public SportService(YahooSportsClient yahooSportsClient) {
+    public SportService(YahooSportsClient yahooSportsClient, GameService gameService) {
         this.yahooSportsClient = yahooSportsClient;
+        this.gameService = gameService;
     }
 
-    public List<Game> getTeamGames(String teamId, int nextX, int lastX) {
+    public List<Game> getTeamGames(String teamId, int nextX, int lastX, boolean cached) {
         List<YahooGame> games = yahooSportsClient.getTeamGames(teamId, nextX, lastX);
         if (games == null)
             return List.of();
         return games.stream()
-                .map(g -> yahooSportsClient.getGameDetails(g.gameId()))
+                .map(g -> cached ? gameService.getGameDetails(g.gameId())
+                                 : gameService.fetchGameDetails(g.gameId()))
                 .filter(Objects::nonNull)
-                .map(Game::from)
                 .toList();
     }
 
-    public List<Game> getTeamGamesParallel(String teamId, int nextX, int lastX) {
+    public List<Game> getTeamGamesParallel(String teamId, int nextX, int lastX, boolean cached) {
         List<YahooGame> games = yahooSportsClient.getTeamGames(teamId, nextX, lastX);
         if (games == null)
             return List.of();
         try (ExecutorService executor = ContextExecutorService.wrap(
                 Executors.newVirtualThreadPerTaskExecutor(),
                 contextSnapshotFactory::captureAll)) {
-            List<Future<YahooGame>> futures = games.stream()
-                    .map(g -> executor.submit(() -> yahooSportsClient.getGameDetails(g.gameId())))
+            List<Future<Game>> futures = games.stream()
+                    .map(g -> executor.submit(() ->
+                            cached ? gameService.getGameDetails(g.gameId())
+                                   : gameService.fetchGameDetails(g.gameId())))
                     .toList();
             return futures.stream()
                     .map(f -> {
@@ -61,16 +63,7 @@ public class SportService {
                         }
                     })
                     .filter(Objects::nonNull)
-                    .map(Game::from)
                     .toList();
         }
-    }
-
-    // unless: skip caching null results (e.g. game not found) — avoids
-    // storing a transient absence that could mask a later valid response
-    @Cacheable(value = CacheConfig.CACHE_GAME_DETAILS, key = "#gameId", unless = "#result == null")
-    public Game getGameDetails(String gameId) {
-        YahooGame game = yahooSportsClient.getGameDetails(gameId);
-        return game == null ? null : Game.from(game);
     }
 }
