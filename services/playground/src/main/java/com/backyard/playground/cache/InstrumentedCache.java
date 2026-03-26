@@ -45,21 +45,26 @@ public class InstrumentedCache implements Cache {
                 .lowCardinalityKeyValue("cache.name", delegate.getName())
                 .highCardinalityKeyValue("cache.key", String.valueOf(key))
                 .start();
-        ValueWrapper result = delegate.get(key);
-        obs.lowCardinalityKeyValue("cache.result", result != null ? "hit" : "miss").stop();
+        // openScope pushes this observation onto the thread's active span stack
+        // so that any spans created during delegate.get() (outbound call, cache.put)
+        // appear as children of this cache.get span in Jaeger
+        try (var scope = obs.openScope()) {
+            ValueWrapper result = delegate.get(key);
+            obs.lowCardinalityKeyValue("cache.result", result != null ? "hit" : "miss").stop();
 
-        if (result == null) {
-            log.debug("cache MISS: cache='{}' key='{}'", delegate.getName(), key);
-        } else {
-            OptionalLong remaining = remainingSeconds(key);
-            if (remaining.isPresent()) {
-                log.debug("cache HIT:  cache='{}' key='{}' expires in {}s",
-                        delegate.getName(), key, remaining.getAsLong());
+            if (result == null) {
+                log.debug("cache MISS: cache='{}' key='{}'", delegate.getName(), key);
             } else {
-                log.debug("cache HIT:  cache='{}' key='{}'", delegate.getName(), key);
+                OptionalLong remaining = remainingSeconds(key);
+                if (remaining.isPresent()) {
+                    log.debug("cache HIT:  cache='{}' key='{}' expires in {}s",
+                            delegate.getName(), key, remaining.getAsLong());
+                } else {
+                    log.debug("cache HIT:  cache='{}' key='{}'", delegate.getName(), key);
+                }
             }
+            return result;
         }
-        return result;
     }
 
     @Override
@@ -70,7 +75,9 @@ public class InstrumentedCache implements Cache {
                 .lowCardinalityKeyValue("cache.name", delegate.getName())
                 .highCardinalityKeyValue("cache.key", String.valueOf(key))
                 .start();
-        delegate.put(key, value);
+        try (var scope = obs.openScope()) {
+            delegate.put(key, value);
+        }
         obs.stop();
     }
 
