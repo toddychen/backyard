@@ -30,6 +30,10 @@ spec:
             - name: SPRING_PROFILES_ACTIVE
               value: {{ .Values.springProfile | quote }}
             {{- end }}
+            {{- if .Values.serverPort }}
+            - name: SERVER_PORT
+              value: {{ .Values.serverPort | quote }}
+            {{- end }}
             {{- if .Values.gcpProjectId }}
             - name: GCP_PROJECT_ID
               value: {{ .Values.gcpProjectId | quote }}

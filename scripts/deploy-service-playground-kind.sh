@@ -34,7 +34,7 @@ kubectl -n "${NAMESPACE}" get pods -o wide
 echo "==> Service (NodePort)"
 kubectl -n "${NAMESPACE}" get svc "${RELEASE}" || true
 
-NODE_PORT="$(kubectl -n "${NAMESPACE}" get svc "${RELEASE}" -o jsonpath='{.spec.ports[0].nodePort}' 2>/dev/null || true)"
+NODE_PORT="$(kubectl -n "${NAMESPACE}" get svc "${RELEASE}" -o jsonpath='{.spec.ports[?(@.name=="http")].nodePort}' 2>/dev/null || true)"
 if [[ -n "${NODE_PORT}" ]]; then
   echo "==> Curl via NodePort"
   echo "curl \"http://127.0.0.1:${NODE_PORT}/api/v1/echo?message=hello&from=kind\""
