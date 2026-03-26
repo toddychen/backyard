@@ -47,7 +47,7 @@ Spring profile currently uses:
 ## Service: `playground`
 
 API endpoint:
-- `GET /api/echo`
+- `GET /api/v1/echo`
   - `message` (required)
   - `from` (optional)
 
@@ -130,11 +130,11 @@ Defaults used by the script:
 - Values: `infra/helm/playground/values-kind.yaml`
 
 NodePort is fixed:
-- `http://127.0.0.1:30001/api/echo?...`
+- `http://127.0.0.1:30001/api/v1/echo?...`
 
 ### 3. Verify
 ```bash
-curl "http://127.0.0.1:30001/api/echo?message=hello&from=myself"
+curl "http://127.0.0.1:30001/api/v1/echo?message=hello&from=myself"
 ```
 
 ## Handy Developer Scripts
@@ -183,6 +183,9 @@ git add infra/helm/playground/values-*.yaml && git commit -m "chore(playground):
 **Revert (roll back):** Run the same script with the **previous** Git SHA, then commit and push. Argo CD will sync and roll the Deployment back.
 
 Before first deploy, replace `REPLACE_WITH_GIT_SHA` in `values-stage.yaml` and `values-prod.yaml` with a real SHA (e.g. via the script above). Set `ingress.hosts[0].host` in each file when you have stage/prod hostnames.
+
+For temporary local access during debugging (without public ingress), see:
+- `docs/service-playground/k8s-port-forward.md`
 
 ---
 

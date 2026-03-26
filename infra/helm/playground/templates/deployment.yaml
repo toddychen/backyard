@@ -25,11 +25,19 @@ spec:
             - name: http
               containerPort: 8080
               protocol: TCP
-          {{- if .Values.springProfile }}
           env:
+            {{- if .Values.springProfile }}
             - name: SPRING_PROFILES_ACTIVE
               value: {{ .Values.springProfile | quote }}
-          {{- end }}
+            {{- end }}
+            {{- if .Values.gcpProjectId }}
+            - name: GCP_PROJECT_ID
+              value: {{ .Values.gcpProjectId | quote }}
+            {{- end }}
+            {{- if .Values.otlpEndpoint }}
+            - name: MANAGEMENT_OPENTELEMETRY_TRACING_EXPORT_OTLP_ENDPOINT
+              value: {{ .Values.otlpEndpoint | quote }}
+            {{- end }}
           livenessProbe:
             httpGet:
               path: {{ .Values.livenessProbe.path }}

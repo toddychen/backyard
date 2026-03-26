@@ -10,6 +10,7 @@ image:
 
 # stage profile → logback uses !dev → JSON logs, INFO level
 springProfile: stage
+gcpProjectId: backyard-490700
 
 service:
   type: ClusterIP

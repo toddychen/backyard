@@ -10,6 +10,7 @@ image:
 
 # prod profile → logback uses !dev → JSON logs, INFO level
 springProfile: prod
+gcpProjectId: backyard-490700
 
 service:
   type: ClusterIP

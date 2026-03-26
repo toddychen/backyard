@@ -143,7 +143,7 @@ Cursor 编辑代码
     ↓
 spring-boot-devtools 监听变化（1-3 秒 restart）
     ↓
-curl localhost:8080/api/echo?message=hello  验证
+curl localhost:8080/api/v1/echo?message=hello  验证
 ```
 
 不经过 Docker / K8s，快速迭代。
@@ -279,7 +279,7 @@ Grafana (local) / Splunk Dashboard (GCP)
 
 ## 第一个 API：Echo
 
-**Endpoint：** `GET /api/echo`
+**Endpoint：** `GET /api/v1/echo`
 
 **Parameters：**
 - `message`（required）— 要 echo 的内容
@@ -287,7 +287,7 @@ Grafana (local) / Splunk Dashboard (GCP)
 
 **示例：**
 ```bash
-curl "localhost:8080/api/echo?message=hello&from=yi"
+curl "localhost:8080/api/v1/echo?message=hello&from=yi"
 ```
 
 **Response：**

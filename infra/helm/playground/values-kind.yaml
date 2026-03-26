@@ -18,3 +18,6 @@ service:
 ingress:
   enabled: false
 
+# Jaeger runs in the observability namespace — send traces there in-cluster
+otlpEndpoint: http://jaeger.observability:4318/v1/traces
+

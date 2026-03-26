@@ -7,7 +7,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.5.4</version>
+        <version>4.0.4</version>
         <relativePath/>
     </parent>
 
@@ -23,22 +23,26 @@
     </properties>
 
     <dependencies>
+        <!-- Core web framework: embedded Tomcat, Spring MVC, REST controllers -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
+            <artifactId>spring-boot-starter-webmvc</artifactId>
         </dependency>
 
+        <!-- Health check endpoints (/actuator/health) used by Kubernetes liveness/readiness probes -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
 
+        <!-- Formats logs as JSON for structured log ingestion (e.g. Google Cloud Logging) -->
         <dependency>
             <groupId>net.logstash.logback</groupId>
             <artifactId>logstash-logback-encoder</artifactId>
             <version>${logstash.logback.encoder.version}</version>
         </dependency>
 
+        <!-- Dev-only: auto-restarts the app on code changes without a full rebuild -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-devtools</artifactId>
@@ -46,6 +50,43 @@
             <optional>true</optional>
         </dependency>
 
+        <!-- Declarative HTTP clients: Spring Framework 7 @HttpExchange interfaces
+             backed by RestClient. JDK HttpClient (included in the JDK) is used
+             as the transport — no extra dependencies required. -->
+
+        <!-- Utility library: StringUtils.isBlank() and other null-safe string helpers -->
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+        </dependency>
+
+        <!-- GCP Secret Manager client: loads API keys from GCP secrets in stage/prod -->
+        <dependency>
+            <groupId>com.google.cloud</groupId>
+            <artifactId>google-cloud-secretmanager</artifactId>
+            <version>2.88.0</version>
+        </dependency>
+
+        <!-- Distributed tracing: auto-configures Tracer bean, bridges Micrometer to
+             OpenTelemetry, and exports traces via OTLP (e.g. Google Cloud Trace) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-opentelemetry</artifactId>
+        </dependency>
+
+        <!-- Spring Cache abstraction: provides @Cacheable/@CacheEvict annotations and CacheManager interface -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-cache</artifactId>
+        </dependency>
+
+        <!-- Local (in-process) cache backend for Spring Cache: high-performance JVM cache with Window TinyLFU eviction -->
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+        </dependency>
+
+        <!-- Test framework: JUnit 5, Mockito, Spring test context -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
@@ -58,6 +99,22 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>com.diffplug.spotless</groupId>
+                <artifactId>spotless-maven-plugin</artifactId>
+                <version>2.44.3</version>
+                <configuration>
+                    <java>
+                        <eclipse>
+                            <file>
+                                ${project.basedir}/../../.vscode/eclipse-java-formatter.xml
+                            </file>
+                        </eclipse>
+                        <trimTrailingWhitespace/>
+                        <endWithNewline/>
+                    </java>
+                </configuration>
             </plugin>
         </plugins>
     </build>

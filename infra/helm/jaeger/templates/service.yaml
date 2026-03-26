@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}
+  labels:
+    app.kubernetes.io/name: {{ .Chart.Name }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  # NodePort exposes the UI to the host browser via Kind extraPortMappings.
+  # Playground pods reach Jaeger via ClusterIP on the otlp-http port.
+  type: NodePort
+  selector:
+    app.kubernetes.io/name: {{ .Chart.Name }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+  ports:
+    - name: ui
+      port: {{ .Values.service.uiPort }}
+      targetPort: ui
+      nodePort: {{ .Values.service.uiNodePort }}
+      protocol: TCP
+    - name: otlp-http
+      port: {{ .Values.service.otlpPort }}
+      targetPort: otlp-http
+      protocol: TCP
+    - name: otlp-grpc
+      port: {{ .Values.service.otlpGrpcPort }}
+      targetPort: otlp-grpc
+      protocol: TCP

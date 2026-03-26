@@ -37,7 +37,7 @@ kubectl -n "${NAMESPACE}" get svc "${RELEASE}" || true
 NODE_PORT="$(kubectl -n "${NAMESPACE}" get svc "${RELEASE}" -o jsonpath='{.spec.ports[0].nodePort}' 2>/dev/null || true)"
 if [[ -n "${NODE_PORT}" ]]; then
   echo "==> Curl via NodePort"
-  echo "curl \"http://127.0.0.1:${NODE_PORT}/api/echo?message=hello&from=kind\""
+  echo "curl \"http://127.0.0.1:${NODE_PORT}/api/v1/echo?message=hello&from=kind\""
   echo "curl \"http://127.0.0.1:${NODE_PORT}/actuator/health/readiness\""
 else
   echo "==> NodePort not found yet. You can port-forward instead:"
