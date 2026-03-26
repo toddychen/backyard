@@ -2,8 +2,12 @@ package com.backyard.playground.service;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+
+import io.micrometer.context.ContextExecutorService;
+import io.micrometer.context.ContextSnapshotFactory;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,6 +24,7 @@ public class SportService {
     private static final Logger log = LoggerFactory.getLogger(SportService.class);
 
     private final YahooSportsClient yahooSportsClient;
+    private final ContextSnapshotFactory contextSnapshotFactory = ContextSnapshotFactory.builder().build();
 
     public SportService(YahooSportsClient yahooSportsClient) {
         this.yahooSportsClient = yahooSportsClient;
@@ -40,10 +45,11 @@ public class SportService {
         List<YahooGame> games = yahooSportsClient.getTeamGames(teamId, nextX, lastX);
         if (games == null)
             return List.of();
-        try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
+        try (ExecutorService executor = ContextExecutorService.wrap(
+                Executors.newVirtualThreadPerTaskExecutor(),
+                contextSnapshotFactory::captureAll)) {
             List<Future<YahooGame>> futures = games.stream()
-                    .map(g -> executor.submit(
-                            () -> yahooSportsClient.getGameDetails(g.gameId())))
+                    .map(g -> executor.submit(() -> yahooSportsClient.getGameDetails(g.gameId())))
                     .toList();
             return futures.stream()
                     .map(f -> {
