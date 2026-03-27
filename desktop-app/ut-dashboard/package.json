@@ -1,0 +1,28 @@
+{
+  "name": "ut-dashboard",
+  "version": "1.0.0",
+  "description": "UT Dashboard - local file viewer",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --mac"
+  },
+  "build": {
+    "appId": "com.backyard.ut-dashboard",
+    "productName": "UT Dashboard",
+    "mac": {
+      "category": "public.app-category.utilities",
+      "target": "dmg"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "index.html",
+      "renderer.js"
+    ]
+  },
+  "devDependencies": {
+    "electron": "^41.0.0",
+    "electron-builder": "^25.0.0"
+  }
+}
