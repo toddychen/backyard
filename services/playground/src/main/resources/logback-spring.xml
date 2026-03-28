@@ -19,8 +19,15 @@
         <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
             <encoder class="net.logstash.logback.encoder.LogstashEncoder">
                 <customFields>{"service":"${APP_NAME}"}</customFields>
+                <!-- Tracing context -->
                 <includeMdcKeyName>traceId</includeMdcKeyName>
                 <includeMdcKeyName>spanId</includeMdcKeyName>
+                <!-- Access log fields — set by AccessLogFilter, queried
+                     in Loki via: | json | http_uri =~ "/sport/.*" -->
+                <includeMdcKeyName>http.method</includeMdcKeyName>
+                <includeMdcKeyName>http.uri</includeMdcKeyName>
+                <includeMdcKeyName>http.status</includeMdcKeyName>
+                <includeMdcKeyName>http.duration_ms</includeMdcKeyName>
             </encoder>
         </appender>
         <root level="INFO">

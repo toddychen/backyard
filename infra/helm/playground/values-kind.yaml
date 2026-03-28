@@ -7,7 +7,7 @@ image:
   # If you later switch to private images, we'll re-enable imagePullSecrets.
   pullPolicy: IfNotPresent
 
-springProfile: dev
+springProfile: kind
 
 service:
   type: NodePort
