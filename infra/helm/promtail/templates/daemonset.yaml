@@ -21,8 +21,27 @@ spec:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            # The node name this pod is running on, injected via the
+            # downward API. Promtail reads NODE_NAME to build the
+            # automatic spec.nodeName selector for pod discovery.
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            # Override HOSTNAME to the node name. Promtail 3.x reads
+            # HOSTNAME (not NODE_NAME) to build its automatic
+            # spec.nodeName selector for pod discovery. Kubernetes
+            # sets HOSTNAME to the pod name by default, which causes
+            # Promtail to filter for a non-existent node and discover
+            # zero pods.
+            - name: HOSTNAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
           args:
             - -config.file=/etc/promtail/promtail.yaml
+            - -config.expand-env=true
           ports:
             - name: http
               containerPort: 9080

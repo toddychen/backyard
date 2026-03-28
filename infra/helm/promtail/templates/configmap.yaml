@@ -28,10 +28,11 @@ data:
         pipeline_stages:
           - cri: {}
         relabel_configs:
-          # Pin log collection to the node this Promtail runs on.
-          # Each DaemonSet pod only tails logs for its own node.
+          # Keep only pods running on this node. NODE_NAME is injected
+          # via the downward API and expanded by -config.expand-env=true.
           - source_labels: [__meta_kubernetes_pod_node_name]
-            target_label: __host__
+            action: keep
+            regex: ${NODE_NAME}
           # Attach Kubernetes metadata as Loki stream labels.
           - source_labels: [__meta_kubernetes_namespace]
             target_label: namespace
@@ -43,10 +44,7 @@ data:
               [__meta_kubernetes_pod_label_app_kubernetes_io_name]
             target_label: app
           # Build the log file path on the node filesystem:
-          # /var/log/pods/<namespace>_<pod>_<uid>/<container>/*.log
-          - source_labels:
-              [ __meta_kubernetes_pod_uid,
-                __meta_kubernetes_pod_container_name ]
-            separator: /
+          # /var/log/pods/<namespace>_<pod>_<uid>/<container>/0.log
+          - source_labels: [__meta_kubernetes_pod_uid]
             target_label: __path__
-            replacement: /var/log/pods/*$1/*.log
+            replacement: /var/log/pods/*$1/*/*.log

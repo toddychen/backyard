@@ -47,6 +47,28 @@ Implement a multi-level cache for incoming API responses and outgoing Feign call
 
 ---
 
+## Redis Health Check & Error Handling
+
+Add proper Redis health check and graceful degradation when Redis is unavailable.
+
+**What to implement:**
+- Add Redis to the Spring Boot health check (`/actuator/health`) so readiness
+  probe fails when Redis is unreachable — prevents traffic from reaching a pod
+  that cannot use the cache
+- Wrap Redis connection errors with a clear error log including context
+  (which cache, which key, what operation)
+- Decide startup behavior: if Redis is down at startup, should the service
+  refuse to start or start degraded (cache miss on every request)?
+  Current behavior is to start and throw on first cache access — consider
+  making this explicit
+
+**What needs to be done:**
+- Configure `management.health.redis.enabled=true` and include in readiness group
+- Add error wrapping in cache layer for Redis failures
+- Define fallback behavior: fail fast vs degrade gracefully (bypass cache)
+
+---
+
 ## Database Integration
 
 Connect the service to one or more database backends depending on the use case.
