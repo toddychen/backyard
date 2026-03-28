@@ -16,5 +16,6 @@ echo "==> Waiting for rollout"
 kubectl -n "${NAMESPACE}" rollout status "deploy/${RELEASE}" --timeout=60s
 
 echo "==> Jaeger is ready"
-echo "    UI:        http://127.0.0.1:30686"
-echo "    OTLP HTTP: http://jaeger.${NAMESPACE}:4318/v1/traces  (in-cluster)"
+echo "    UI:             http://127.0.0.1:30686"
+echo "    OTLP HTTP:      http://jaeger.${NAMESPACE}:4318/v1/traces  (in-cluster)"
+echo "    OTLP HTTP:      http://127.0.0.1:30318/v1/traces             (local jar)"

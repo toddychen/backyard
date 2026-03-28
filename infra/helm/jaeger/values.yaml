@@ -7,8 +7,9 @@ service:
   # UI — accessible from the host browser via Kind extraPortMappings
   uiPort: 16686
   uiNodePort: 30686
-  # OTLP HTTP — used by playground pods inside the cluster
+  # OTLP HTTP — used by playground pods inside the cluster; NodePort for local jar
   otlpPort: 4318
+  otlpNodePort: 30318
   # OTLP gRPC — available but not used by default
   otlpGrpcPort: 4317
 

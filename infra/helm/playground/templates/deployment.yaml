@@ -44,6 +44,14 @@ spec:
             - name: MANAGEMENT_OPENTELEMETRY_TRACING_EXPORT_OTLP_ENDPOINT
               value: {{ .Values.otlpEndpoint | quote }}
             {{- end }}
+            {{- if .Values.redisHost }}
+            - name: REDIS_HOST
+              value: {{ .Values.redisHost | quote }}
+            {{- end }}
+            {{- if .Values.redisPort }}
+            - name: REDIS_PORT
+              value: {{ .Values.redisPort | quote }}
+            {{- end }}
           livenessProbe:
             httpGet:
               path: {{ .Values.livenessProbe.path }}

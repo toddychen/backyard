@@ -21,6 +21,7 @@ spec:
     - name: otlp-http
       port: {{ .Values.service.otlpPort }}
       targetPort: otlp-http
+      nodePort: {{ .Values.service.otlpNodePort }}
       protocol: TCP
     - name: otlp-grpc
       port: {{ .Values.service.otlpGrpcPort }}

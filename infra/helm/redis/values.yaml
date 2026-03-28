@@ -1,0 +1,17 @@
+image:
+  repository: redis
+  tag: "8.6-alpine"
+  pullPolicy: IfNotPresent
+
+service:
+  port: 6379
+  # NodePort for direct access from host (e.g. redis-cli from laptop)
+  nodePort: 30379
+
+resources:
+  requests:
+    memory: 64Mi
+    cpu: 50m
+  limits:
+    memory: 128Mi
+    cpu: 200m

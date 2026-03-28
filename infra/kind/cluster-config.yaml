@@ -3,11 +3,21 @@ apiVersion: kind.x-k8s.io/v1alpha4
 nodes:
   - role: control-plane
     extraPortMappings:
+      # playground service (NodePort)
       - containerPort: 30001
         hostPort: 30001
         protocol: TCP
+      # Jaeger UI
       - containerPort: 30686
         hostPort: 30686
+        protocol: TCP
+      # Jaeger OTLP HTTP (local jar sends traces here)
+      - containerPort: 30318
+        hostPort: 30318
+        protocol: TCP
+      # Redis (redis-cli from host)
+      - containerPort: 30379
+        hostPort: 30379
         protocol: TCP
   - role: worker
   - role: worker
