@@ -5,7 +5,7 @@ replicas: 1
 
 image:
   repository: ghcr.io/toddychen/service-playground
-  tag: "79ee3ef937bd99e755e257a6100e42c8399f222e" # Set to git SHA for promote; set to previous SHA to revert
+  tag: "3caa03b7c013ec3e70145f8317a5c9bc6e7de9fa" # Set to git SHA for promote; set to previous SHA to revert
   pullPolicy: Always
 
 # stage profile → logback uses !dev → JSON logs, INFO level
