@@ -1,0 +1,52 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-config
+  labels:
+    app.kubernetes.io/name: {{ .Chart.Name }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+data:
+  promtail.yaml: |
+    server:
+      http_listen_port: 9080
+      grpc_listen_port: 0
+
+    positions:
+      # Persisted on the host so Promtail doesn't re-read logs
+      # after pod restarts.
+      filename: /run/promtail/positions.yaml
+
+    clients:
+      - url: {{ .Values.lokiUrl }}
+
+    scrape_configs:
+      - job_name: kubernetes-pods
+        kubernetes_sd_configs:
+          - role: pod
+        # Kind uses containerd — CRI stage parses the log format
+        # (timestamp, stream, flags, message).
+        pipeline_stages:
+          - cri: {}
+        relabel_configs:
+          # Pin log collection to the node this Promtail runs on.
+          # Each DaemonSet pod only tails logs for its own node.
+          - source_labels: [__meta_kubernetes_pod_node_name]
+            target_label: __host__
+          # Attach Kubernetes metadata as Loki stream labels.
+          - source_labels: [__meta_kubernetes_namespace]
+            target_label: namespace
+          - source_labels: [__meta_kubernetes_pod_name]
+            target_label: pod
+          - source_labels: [__meta_kubernetes_pod_container_name]
+            target_label: container
+          - source_labels:
+              [__meta_kubernetes_pod_label_app_kubernetes_io_name]
+            target_label: app
+          # Build the log file path on the node filesystem:
+          # /var/log/pods/<namespace>_<pod>_<uid>/<container>/*.log
+          - source_labels:
+              [ __meta_kubernetes_pod_uid,
+                __meta_kubernetes_pod_container_name ]
+            separator: /
+            target_label: __path__
+            replacement: /var/log/pods/*$1/*.log

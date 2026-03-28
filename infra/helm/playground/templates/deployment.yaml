@@ -16,6 +16,11 @@ spec:
       labels:
         app.kubernetes.io/name: {{ .Chart.Name }}
         app.kubernetes.io/instance: {{ .Release.Name }}
+      annotations:
+        # Prometheus pod discovery — scrape /actuator/prometheus on port 8080
+        prometheus.io/scrape: "true"
+        prometheus.io/path: /actuator/prometheus
+        prometheus.io/port: "8080"
     spec:
       containers:
         - name: {{ .Chart.Name }}

@@ -1,0 +1,15 @@
+image:
+  repository: grafana/promtail
+  tag: "3.6.8"
+  pullPolicy: IfNotPresent
+
+# In-cluster Loki push endpoint
+lokiUrl: http://loki.observability:3100/loki/api/v1/push
+
+resources:
+  requests:
+    memory: 32Mi
+    cpu: 20m
+  limits:
+    memory: 128Mi
+    cpu: 100m

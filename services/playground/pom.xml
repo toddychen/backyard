@@ -35,6 +35,12 @@
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
 
+        <!-- Exposes /actuator/prometheus for Prometheus scraping -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-prometheus</artifactId>
+        </dependency>
+
         <!-- Formats logs as JSON for structured log ingestion (e.g. Google Cloud Logging) -->
         <dependency>
             <groupId>net.logstash.logback</groupId>

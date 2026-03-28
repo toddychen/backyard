@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: {{ .Release.Name }}
+  labels:
+    app.kubernetes.io/name: {{ .Chart.Name }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ .Chart.Name }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ .Chart.Name }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      serviceAccountName: {{ .Release.Name }}
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+            - -config.file=/etc/promtail/promtail.yaml
+          ports:
+            - name: http
+              containerPort: 9080
+              protocol: TCP
+          volumeMounts:
+            - name: config
+              mountPath: /etc/promtail
+            # Host pod log files — read-only, tailed by Promtail
+            - name: pods-logs
+              mountPath: /var/log/pods
+              readOnly: true
+            # Positions file on the host — survives pod restarts so
+            # Promtail does not re-ship already-sent log lines.
+            - name: positions
+              mountPath: /run/promtail
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+        - name: config
+          configMap:
+            name: {{ .Release.Name }}-config
+        - name: pods-logs
+          hostPath:
+            path: /var/log/pods
+        - name: positions
+          hostPath:
+            path: /tmp/promtail-positions
+            type: DirectoryOrCreate
+      tolerations:
+        # Run on control-plane nodes too so no logs are missed
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule

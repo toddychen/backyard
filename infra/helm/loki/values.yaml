@@ -1,0 +1,16 @@
+image:
+  repository: grafana/loki
+  tag: "3.7.1"
+  pullPolicy: IfNotPresent
+
+service:
+  # Not exposed to the host — Grafana reaches Loki in-cluster
+  port: 3100
+
+resources:
+  requests:
+    memory: 64Mi
+    cpu: 50m
+  limits:
+    memory: 256Mi
+    cpu: 200m

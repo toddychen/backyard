@@ -1,0 +1,19 @@
+image:
+  repository: prom/prometheus
+  tag: "v3.10.0"
+  pullPolicy: IfNotPresent
+
+service:
+  port: 9090
+  nodePort: 30090
+
+# Retain 7 days of metrics — sufficient for dev
+retentionTime: 7d
+
+resources:
+  requests:
+    memory: 128Mi
+    cpu: 50m
+  limits:
+    memory: 256Mi
+    cpu: 200m

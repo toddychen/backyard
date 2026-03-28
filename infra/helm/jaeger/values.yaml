@@ -4,7 +4,9 @@ image:
   pullPolicy: IfNotPresent
 
 service:
-  # UI — accessible from the host browser via Kind extraPortMappings
+  # UI and query API — same port serves both. Accessible from the host
+  # browser via Kind extraPortMappings. Grafana also queries this port
+  # internally (http://jaeger.observability:16686) to fetch trace data.
   uiPort: 16686
   uiNodePort: 30686
   # OTLP HTTP — used by playground pods inside the cluster; NodePort for local jar
