@@ -17,6 +17,8 @@ import com.backyard.playground.exception.ServiceUnavailableException;
 import com.backyard.playground.exception.UnauthorizedException;
 
 import org.springframework.web.client.RestClientException;
+
+import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 @RestControllerAdvice
@@ -71,6 +73,18 @@ public class GlobalExceptionHandler {
         log.error("service unavailable: errorId='{}'", errorId, ex.getCause());
         return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
                 .body(new ErrorResponse(503, ex.getMessage(), errorId));
+    }
+
+    @ExceptionHandler(CallNotPermittedException.class)
+    public ResponseEntity<ErrorResponse> handleCircuitOpen(
+            CallNotPermittedException ex) {
+        String errorId = generateErrorId();
+        log.warn("circuit open for '{}': errorId='{}'",
+                ex.getCausingCircuitBreakerName(), errorId);
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(new ErrorResponse(503,
+                        "upstream service temporarily unavailable",
+                        errorId));
     }
 
     // Catches unhandled RestClient failures — network errors, unexpected

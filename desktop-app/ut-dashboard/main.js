@@ -12,18 +12,19 @@ let mainWindow;
 function createWindow() {
   Menu.setApplicationMenu(null);
 
-  const { x: areaX, y: areaY, width: areaWidth } = screen.getPrimaryDisplay().workArea;
-  const winWidth = 510;
-  const winHeight = 270;
+  const { x: areaX, y: areaY } = screen.getPrimaryDisplay().workArea;
+  const winWidth = 132;
+  const winHeight = 550;
 
   mainWindow = new BrowserWindow({
     width: winWidth,
     height: winHeight,
-    x: areaX + areaWidth - winWidth - 20,
-    y: areaY + 20,
+    x: areaX + 20,
+    y: areaY + 400,
     alwaysOnTop: true,
     visibleOnAllWorkspaces: true,
     resizable: false,
+    movable: false,
     useContentSize: true,
     frame: false,
     transparent: true,
@@ -61,6 +62,11 @@ function pushData() {
 
 app.whenReady().then(() => {
   ipcMain.handle('get-data', () => readData());
+
+  ipcMain.on('set-ignore-mouse-events', (e, ignore, options) => {
+    const win = BrowserWindow.fromWebContents(e.sender);
+    if (win) win.setIgnoreMouseEvents(ignore, options || {});
+  });
 
   createWindow();
 

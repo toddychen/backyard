@@ -35,19 +35,9 @@ spec:
             - name: SPRING_PROFILES_ACTIVE
               value: {{ .Values.springProfile | quote }}
             {{- end }}
-            {{- if .Values.serverPort }}
-            - name: SERVER_PORT
-              value: {{ .Values.serverPort | quote }}
-            {{- end }}
             {{- if .Values.gcpProjectId }}
             - name: GCP_PROJECT_ID
               value: {{ .Values.gcpProjectId | quote }}
-            {{- end }}
-            {{- if .Values.otlpEndpoint }}
-            - name: MANAGEMENT_OPENTELEMETRY_TRACING_EXPORT_ENABLED
-              value: "true"
-            - name: MANAGEMENT_OPENTELEMETRY_TRACING_EXPORT_OTLP_ENDPOINT
-              value: {{ .Values.otlpEndpoint | quote }}
             {{- end }}
             {{- if .Values.redisHost }}
             - name: REDIS_HOST
@@ -57,6 +47,25 @@ spec:
             - name: REDIS_PORT
               value: {{ .Values.redisPort | quote }}
             {{- end }}
+            {{- if .Values.otlpEndpoint }}
+            - name: OTEL_TRACING_ENABLED
+              value: "true"
+            - name: MANAGEMENT_OPENTELEMETRY_TRACING_EXPORT_OTLP_ENDPOINT
+              value: {{ .Values.otlpEndpoint | quote }}
+            {{- end }}
+            {{- if .Values.tracingSamplingProbability }}
+            - name: TRACING_SAMPLING_PROBABILITY
+              value: {{ .Values.tracingSamplingProbability | quote }}
+            {{- end }}
+            {{- if .Values.doryDbUrl }}
+            - name: DORY_DB_URL
+              value: {{ .Values.doryDbUrl | quote }}
+            {{- end }}
+          {{- if .Values.doryDataMount }}
+          volumeMounts:
+            - name: dory-data
+              mountPath: /data
+          {{- end }}
           livenessProbe:
             httpGet:
               path: {{ .Values.livenessProbe.path }}
@@ -71,4 +80,10 @@ spec:
             periodSeconds: {{ .Values.readinessProbe.periodSeconds }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
-
+      {{- if .Values.doryDataMount }}
+      volumes:
+        - name: dory-data
+          hostPath:
+            path: {{ .Values.doryHostPath }}
+            type: DirectoryOrCreate
+      {{- end }}

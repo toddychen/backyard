@@ -8,8 +8,8 @@ image:
   tag: "79ee3ef937bd99e755e257a6100e42c8399f222e" # Set to git SHA for promote; set to previous SHA to revert
   pullPolicy: Always
 
-# stage profile → logback uses !dev → JSON logs, INFO level
-springProfile: stage
+# No springProfile needed — logback uses dev vs !dev only.
+# Any pod without SPRING_PROFILES_ACTIVE=dev gets JSON logs automatically.
 gcpProjectId: backyard-490700
 
 service:

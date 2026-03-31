@@ -7,8 +7,6 @@ image:
   # If you later switch to private images, we'll re-enable imagePullSecrets.
   pullPolicy: IfNotPresent
 
-springProfile: kind
-
 service:
   type: NodePort
   port: 8080
@@ -18,13 +16,16 @@ service:
 ingress:
   enabled: false
 
-# Override server.port=2000 from application-dev.properties — probes expect 8080
-serverPort: "8080"
-
 # Jaeger runs in the observability namespace — send traces there in-cluster
 otlpEndpoint: http://jaeger.observability:4318/v1/traces
+tracingSamplingProbability: "1.0"
 
 # Redis runs in the redis namespace — connect via internal service DNS
 redisHost: redis.redis
 redisPort: "6379"
 
+# H2 dory DB — persisted to host machine via hostPath volume
+# Container writes to /data/dory; host sees ~/.backyard/dory-kind.mv.db
+doryDbUrl: "jdbc:h2:file:/data/dory-kind"
+doryDataMount: true
+doryHostPath: "/Users/toddy/.backyard"

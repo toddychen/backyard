@@ -99,6 +99,26 @@
         </dependency>
 
 
+        <!-- JPA + Hibernate: entity mapping and repository abstraction -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-jpa</artifactId>
+        </dependency>
+
+        <!-- H2 embedded database: file-based persistence for dory reminders -->
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- Resilience4j: circuit breaker + retry for outbound clients -->
+        <dependency>
+            <groupId>io.github.resilience4j</groupId>
+            <artifactId>resilience4j-spring-boot4</artifactId>
+            <version>2.4.0</version>
+        </dependency>
+
         <!-- Test framework: JUnit 5, Mockito, Spring test context -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

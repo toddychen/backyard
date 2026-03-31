@@ -1,0 +1,27 @@
+{
+  "name": "dory",
+  "version": "1.0.0",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --mac"
+  },
+  "build": {
+    "appId": "com.backyard.dory",
+    "productName": "Dory",
+    "mac": {
+      "icon": "assets/icon.icns",
+      "category": "public.app-category.productivity"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "ui/**",
+      "assets/**"
+    ]
+  },
+  "devDependencies": {
+    "electron": "^41.0.0",
+    "electron-builder": "^26.8.1"
+  }
+}

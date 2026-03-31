@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>High Urgency Reminder</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: transparent;
+            display: flex;
+            align-items: flex-end;
+            justify-content: flex-start;
+            height: 100vh;
+            overflow: hidden;
+            pointer-events: none;
+        }
+
+        .box {
+            display: flex;
+            flex-direction: column;
+            background: #000;
+            border: 3px solid rgba(251, 191, 36, 0.6);
+            border-radius: 12px;
+            padding: 1rem 1.2rem;
+            pointer-events: auto;
+            width: 100%;
+            box-sizing: border-box;
+            animation: glowPulse 1.5s ease-in-out infinite alternate;
+        }
+
+        @keyframes glowPulse {
+            from { border-color: rgba(251, 191, 36, 0.2); }
+            to   { border-color: rgba(251, 191, 36, 1); }
+        }
+
+        .title {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #fff;
+            margin: 0 0 0.4rem 0;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            text-align: center;
+        }
+
+        .countdown {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            font-size: 1.1rem;
+            font-weight: 800;
+            color: #fb923c;
+            margin: 0 0 0.25rem 0;
+            text-align: center;
+        }
+
+        .scheduled {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            font-size: 0.75rem;
+            color: #a1a1aa;
+            margin: 0 0 0.2rem 0;
+            text-align: center;
+        }
+
+        .scheduled:last-of-type {
+            margin-bottom: 0.9rem;
+        }
+
+        .buttons {
+            display: flex;
+            flex-direction: row;
+            gap: 0.5rem;
+        }
+
+        button {
+            background: none;
+            border: 1px solid #3f3f46;
+            border-radius: 6px;
+            color: #fff;
+            cursor: pointer;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            font-size: 0.72rem;
+            padding: 0.3rem 0.5rem;
+        }
+
+        button:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-done {
+            color: #4ade80;
+            border-color: #4ade80;
+            flex: 1.5;
+        }
+
+        .btn-postpone {
+            color: #fb923c;
+            flex: 1;
+        }
+
+        .separator {
+            border: none;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            margin: 0.9rem 0 0.6rem 0;
+        }
+
+        .next-up {
+            display: flex;
+            align-items: baseline;
+            gap: 0.5rem;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        }
+
+        .next-up-label {
+            font-size: 0.65rem;
+            color: #52525b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+        }
+
+        .next-up-title {
+            font-size: 0.78rem;
+            color: #fff;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            flex: 1;
+        }
+
+        .next-up-time {
+            font-size: 0.72rem;
+            color: #a1a1aa;
+            white-space: nowrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="box">
+        <div class="title" id="title">Loading...</div>
+        <div class="countdown" id="countdown"></div>
+        <div class="scheduled" id="scheduled"></div>
+        <div class="scheduled" id="snoozed" style="display:none; margin-top:-0.15rem"></div>
+        <div class="buttons">
+            <button class="btn-done" id="btn-done">Done</button>
+            <button class="btn-postpone" id="postpone-10">+10m</button>
+            <button class="btn-postpone" id="postpone-30">+30m</button>
+            <button class="btn-postpone" id="postpone-60">+1h</button>
+        </div>
+        <hr class="separator" id="separator" style="display:none">
+        <div class="next-up" id="next-up" style="display:none">
+            <span class="next-up-label">Next Up</span>
+            <span class="next-up-title" id="next-up-title"></span>
+            <span class="next-up-time" id="next-up-time"></span>
+        </div>
+    </div>
+
+    <script>
+        const box = document.querySelector('.box');
+        window.addEventListener('mousemove', (e) => {
+            const over = box.contains(document.elementFromPoint(e.clientX, e.clientY));
+            if (window.electronAPI) {
+                window.electronAPI.setIgnoreMouseEvents(!over, { forward: true });
+            }
+        });
+
+        let currentTaskId = null;
+        let countdownInterval = null;
+
+        function renderCountdown(targetTime) {
+            const msRemaining = targetTime - new Date();
+            const el = document.getElementById('countdown');
+            if (msRemaining <= 0) {
+                const abs = Math.abs(msRemaining);
+                const m = Math.floor(abs / 60000);
+                const s = Math.floor((abs % 60000) / 1000);
+                el.textContent = `Overdue by ${m}m ${s}s`;
+                el.style.color = '#ef4444';
+            } else {
+                const m = Math.floor(msRemaining / 60000);
+                const s = Math.floor((msRemaining % 60000) / 1000);
+                el.textContent = `In ${m}m ${s}s`;
+                el.style.color = '#fb923c';
+            }
+        }
+
+        function formatScheduled(date) {
+            return date.toLocaleString('en-US', { weekday: 'short', hour: 'numeric', minute: '2-digit' });
+        }
+
+        function formatNextTime(date) {
+            const diffMins = Math.round((date - new Date()) / 60000);
+            if (diffMins < 60) return `in ${diffMins}m`;
+            const weekday = date.toLocaleDateString('en-US', { weekday: 'short' });
+            const monthDay = date.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric' });
+            const time = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+            return `${weekday} ${monthDay}, ${time}`;
+        }
+
+        function effectiveTime(r) {
+            const next = new Date(r.nextOccurrence);
+            if (r.snoozeUntil) {
+                const snooze = new Date(r.snoozeUntil);
+                if (snooze > next) return snooze;
+            }
+            return next;
+        }
+
+        if (window.electronAPI) {
+            window.electronAPI.onUpdateReminders((data) => {
+                const reminder = data.current;
+                const nextItem = data.next;
+
+                currentTaskId = reminder.id;
+                document.getElementById('title').innerText = reminder.title || 'Unknown Task';
+
+                const target = effectiveTime(reminder);
+                if (countdownInterval) clearInterval(countdownInterval);
+                renderCountdown(target);
+                countdownInterval = setInterval(() => renderCountdown(target), 1000);
+
+                document.getElementById('scheduled').innerText = `Scheduled: ${formatScheduled(new Date(reminder.nextOccurrence))}`;
+                const snoozedEl = document.getElementById('snoozed');
+                if (reminder.snoozeUntil) {
+                    snoozedEl.innerText = `Snoozed to: ${formatScheduled(new Date(reminder.snoozeUntil))}`;
+                    snoozedEl.style.display = '';
+                } else {
+                    snoozedEl.style.display = 'none';
+                }
+
+                const sep = document.getElementById('separator');
+                const nextUpEl = document.getElementById('next-up');
+                if (nextItem) {
+                    document.getElementById('next-up-title').innerText = nextItem.title;
+                    document.getElementById('next-up-time').innerText = formatNextTime(effectiveTime(nextItem));
+                    sep.style.display = '';
+                    nextUpEl.style.display = 'flex';
+                } else {
+                    sep.style.display = 'none';
+                    nextUpEl.style.display = 'none';
+                }
+            });
+        }
+
+        document.getElementById('btn-done').addEventListener('click', async () => {
+            document.getElementById('title').innerText = 'Finishing...';
+            if (currentTaskId) await window.electronAPI.markAsDone(currentTaskId);
+        });
+
+        const handlePostpone = async (mins) => {
+            document.getElementById('title').innerText = 'Snoozing...';
+            if (currentTaskId) await window.electronAPI.postpone(currentTaskId, mins);
+        };
+
+        document.getElementById('postpone-10').addEventListener('click', () => handlePostpone(10));
+        document.getElementById('postpone-30').addEventListener('click', () => handlePostpone(30));
+        document.getElementById('postpone-60').addEventListener('click', () => handlePostpone(60));
+    </script>
+</body>
+</html>

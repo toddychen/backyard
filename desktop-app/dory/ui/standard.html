@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Dory</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: transparent;
+            display: flex;
+            align-items: flex-end;
+            justify-content: flex-start;
+            height: 100vh;
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        .box {
+            display: flex;
+            flex-direction: column;
+            background: #000;
+            border: 1px solid #4ade80;
+            border-radius: 12px;
+            overflow: visible;
+            pointer-events: auto;
+            position: relative;
+        }
+
+        .header {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            gap: 0.6rem;
+            padding: 0.3rem 1rem;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .header-spacer {
+            flex: 1;
+        }
+
+        .dory-label {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            color: #fff;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .dory-label svg {
+            width: 18px;
+            height: 18px;
+            color: #4ade80;
+        }
+
+        button {
+            background: none;
+            border: 1px solid #3f3f46;
+            border-radius: 6px;
+            color: #fff;
+            cursor: pointer;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            font-size: 0.72rem;
+            padding: 0.2rem 0.5rem;
+        }
+
+        button:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-add {
+            color: #4ade80;
+            border-color: #4ade80;
+            position: relative;
+        }
+
+        .btn-refresh svg {
+            width: 13px;
+            height: 13px;
+            display: block;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .btn-refresh.loading svg {
+            animation: spin 1s linear infinite;
+        }
+
+        .dropdown {
+            display: none;
+            position: absolute;
+            bottom: calc(100% + 6px);
+            left: 0;
+            background: #111;
+            border: 1px solid #3f3f46;
+            border-radius: 8px;
+            overflow: hidden;
+            z-index: 10;
+            min-width: 160px;
+        }
+
+        .dropdown.open {
+            display: block;
+        }
+
+        .dropdown-item {
+            display: block;
+            width: 100%;
+            text-align: left;
+            background: none;
+            border: none;
+            border-radius: 0;
+            color: #fff;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            font-size: 0.78rem;
+            padding: 0.45rem 0.9rem;
+            cursor: pointer;
+            border-bottom: 1px solid #1f1f1f;
+        }
+
+        .dropdown-item:last-child {
+            border-bottom: none;
+        }
+
+        .dropdown-item:hover {
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .reminders {
+            display: none;
+            flex-direction: column;
+            border-top: 1px solid rgba(74, 222, 128, 0.2);
+            overflow: hidden;
+            border-radius: 0 0 12px 12px;
+        }
+
+        .reminder-item {
+            display: flex;
+            flex-direction: column;
+            padding: 0.35rem 1rem;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            gap: 0.15rem;
+        }
+
+        .reminder-item:first-child {
+            border-top: none;
+        }
+
+        .reminder-title {
+            font-size: 0.8rem;
+            color: #fff;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .reminder-time {
+            font-size: 0.72rem;
+            color: #a1a1aa;
+            white-space: nowrap;
+        }
+
+        .reminder-footer {
+            padding: 0.25rem 1rem;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            font-size: 0.72rem;
+            color: #52525b;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+    </style>
+</head>
+<body>
+    <div class="box">
+        <div class="header">
+            <div class="dory-label">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M22 12c0 0-3-5-10-5S2 12 2 12s3 5 10 5 10-5 10-5zm-10 3a3 3 0 1 1 0-6 3 3 0 0 1 0 6z"/>
+                </svg>
+                Dory
+            </div>
+
+            <div class="header-spacer"></div>
+            <div style="position:relative">
+                <button class="btn-add" id="btn-add">+ Add</button>
+                <div class="dropdown" id="dropdown">
+                    <button class="dropdown-item" id="item-home">Dory Home</button>
+                    <button class="dropdown-item" id="item-laundry">Laundry in 1h</button>
+                </div>
+            </div>
+
+            <button class="btn-refresh" id="btn-refresh" title="Refresh">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M23 4v6h-6"></path>
+                    <path d="M1 20v-6h6"></path>
+                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                </svg>
+            </button>
+        </div>
+
+        <div class="reminders" id="reminders"></div>
+    </div>
+
+    <script>
+        const box = document.querySelector('.box');
+        window.addEventListener('mousemove', (e) => {
+            const over = box.contains(document.elementFromPoint(e.clientX, e.clientY));
+            if (window.electronAPI) {
+                window.electronAPI.setIgnoreMouseEvents(!over, { forward: true });
+            }
+        });
+
+        function effectiveTime(r) {
+            const next = new Date(r.nextOccurrence);
+            if (r.snoozeUntil) {
+                const snooze = new Date(r.snoozeUntil);
+                if (snooze > next) return snooze;
+            }
+            return next;
+        }
+
+        function formatTime(date) {
+            const diffMins = Math.round((date - new Date()) / 60000);
+            if (diffMins < 60) return `in ${diffMins} min`;
+            const weekday = date.toLocaleDateString('en-US', { weekday: 'short' });
+            const monthDay = date.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric' });
+            const time = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+            return `${weekday} ${monthDay}, ${time}`;
+        }
+
+        if (window.electronAPI) {
+            window.electronAPI.onPollError(() => {
+                const container = document.getElementById('reminders');
+                container.innerHTML = `<div class="reminder-footer" style="color:#ef4444">⚠ Service unreachable</div>`;
+                container.style.display = 'flex';
+            });
+
+            window.electronAPI.onUpdateReminders((items) => {
+                const container = document.getElementById('reminders');
+                const top2 = items.slice(0, 2);
+
+                if (top2.length === 0) {
+                    container.style.display = 'none';
+                    container.innerHTML = '';
+                    return;
+                }
+
+                const remaining = items.length - top2.length;
+                container.innerHTML = top2.map(r => {
+                    const t = effectiveTime(r);
+                    const urgent = (t - new Date()) < 3600000;
+                    return `
+                    <div class="reminder-item">
+                        <span class="reminder-title" style="${urgent ? 'color:#fb923c' : ''}">${r.title}</span>
+                        <span class="reminder-time">${formatTime(t)}</span>
+                    </div>`;
+                }).join('') + (remaining > 0
+                    ? `<div class="reminder-footer">+${remaining} more</div>`
+                    : '');
+                container.style.display = 'flex';
+            });
+        }
+
+        // Dropdown toggle
+        const dropdown = document.getElementById('dropdown');
+
+        function resizeForContent(extraHeight = 0) {
+            if (window.electronAPI) {
+                window.electronAPI.resizeWindow(box.offsetHeight + extraHeight);
+            }
+        }
+
+        document.getElementById('btn-add').addEventListener('click', (e) => {
+            e.stopPropagation();
+            const opening = !dropdown.classList.contains('open');
+            dropdown.classList.toggle('open');
+            resizeForContent(opening ? dropdown.offsetHeight + 6 : 0);
+        });
+
+        document.addEventListener('click', () => {
+            if (dropdown.classList.contains('open')) {
+                dropdown.classList.remove('open');
+                resizeForContent(0);
+            }
+        });
+
+        function closeDropdown() {
+            dropdown.classList.remove('open');
+            resizeForContent(0);
+        }
+
+        // Dory Home
+        document.getElementById('item-home').addEventListener('click', () => {
+            closeDropdown();
+            if (window.electronAPI) {
+                window.electronAPI.openExternal('http://localhost:3100/dory/toddy');
+            }
+        });
+
+        // Laundry in 1h
+        document.getElementById('item-laundry').addEventListener('click', async () => {
+            closeDropdown();
+            const nextOccurrence = new Date(Date.now() + 3600000).toISOString();
+            await fetch('http://localhost:3100/api/v1/dory/reminders?owner=toddy', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title: 'Laundry', type: 'one-off', nextOccurrence })
+            });
+            if (window.electronAPI) window.electronAPI.refreshItems();
+        });
+
+        const refreshBtn = document.getElementById('btn-refresh');
+        refreshBtn.addEventListener('click', () => {
+            refreshBtn.classList.add('loading');
+            if (window.electronAPI) window.electronAPI.refreshItems();
+            setTimeout(() => refreshBtn.classList.remove('loading'), 1000);
+        });
+    </script>
+</body>
+</html>

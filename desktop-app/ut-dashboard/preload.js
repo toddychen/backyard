@@ -6,4 +6,5 @@ contextBridge.exposeInMainWorld('dashboard', {
   onDataUpdate: (callback) => {
     ipcRenderer.on('data-update', (_event, data) => callback(data));
   },
+  setIgnoreMouseEvents: (ignore, options) => ipcRenderer.send('set-ignore-mouse-events', ignore, options),
 });

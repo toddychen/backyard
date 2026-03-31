@@ -16,6 +16,23 @@ function getLatestStats(messages) {
   return null;
 }
 
+function getLatestSold(messages) {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const content = messages[i].content;
+    if (content && content.includes('Sold items!!!')) {
+      const ct = content.match(/CT\s+(\d+)/);
+      const rd = content.match(/RD\s+(\d+)/);
+      if (ct || rd) {
+        const parts = [];
+        if (ct) parts.push(ct[1]);
+        if (rd) parts.push(rd[1]);
+        return parts.join(' / ');
+      }
+    }
+  }
+  return null;
+}
+
 function computeBadges(messages) {
   const badges = [];
   const latest = messages[messages.length - 1];
@@ -25,9 +42,10 @@ function computeBadges(messages) {
     }
   }
   for (let i = messages.length - 1; i >= 0; i--) {
-    const u = messages[i].unassigned;
-    if (u !== null && u !== undefined) {
-      badges.push(`<span class="badge badge-to-list">To List ${u}</span>`);
+    if ('unassigned' in messages[i]) {
+      if (messages[i].unassigned !== null) {
+        badges.push(`<span class="badge badge-to-list">To List ${messages[i].unassigned}</span>`);
+      }
       break;
     }
   }
@@ -44,6 +62,7 @@ function renderCard(machine, result) {
 
   const stats = getLatestStats(result.data);
   const badges = computeBadges(result.data);
+  const sold = getLatestSold(result.data);
 
   if (!stats) {
     return `<div class="card">
@@ -78,6 +97,14 @@ function renderCard(machine, result) {
         <span class="sub">1h</span>
       </div>
     </div>
+
+    ${sold ? `
+    <div class="stat-block">
+      <div class="row">
+        <span class="label">Sold</span>
+        <span class="value">${sold}</span>
+      </div>
+    </div>` : ''}
 
     ${badgesHtml}
   </div>`;

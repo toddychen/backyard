@@ -4,6 +4,7 @@ import java.util.Map;
 
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.EnableCaching;
+import org.springframework.context.annotation.Profile;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
@@ -24,6 +25,7 @@ import io.micrometer.observation.ObservationRegistry;
  * {@link CacheDefinitionRegistry}, then ensure the appropriate backend bean is present for its {@link CacheType}.
  */
 @Configuration
+@Profile("!home")
 @EnableCaching
 public class CacheConfig {
 

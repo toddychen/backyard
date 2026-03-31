@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dory - Just Keep Swimming</title>
+  <link rel="stylesheet" href="/dory/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <link rel="stylesheet" type="text/css" href="https://npmcdn.com/flatpickr/dist/themes/dark.css">
+</head>
+<body>
+  <div class="app-container">
+    <header>
+      <h1>🐟 Dory</h1>
+      <p>Just keep swimming...</p>
+    </header>
+
+    <main>
+      <!-- ADD REMINDER FORM -->
+      <section class="card add-reminder-section">
+        <form id="add-form">
+
+          <!-- Core Row: What & When -->
+          <div class="form-row core-inputs">
+            <input
+              type="text"
+              id="title"
+              placeholder="What do you need to remember?"
+              required
+              autocomplete="off"
+              autofocus
+            >
+            <div class="time-input-group">
+              <input type="text" id="nextOccurrence" placeholder="Select Date & Time" required>
+            </div>
+          </div>
+
+          <!-- Quick Picks -->
+          <div class="quick-picks">
+            <button type="button" class="chip" data-offset="+1h">+1 Hour</button>
+            <button type="button" class="chip" data-offset="tonight">Tonight 8pm</button>
+            <button type="button" class="chip" data-offset="tomorrow">Tomorrow 9am</button>
+          </div>
+
+          <!-- Type Toggle -->
+          <div class="type-toggle-wrapper">
+            <div class="type-toggle">
+              <input type="radio" id="type-oneoff" name="type" value="one-off" checked>
+              <label for="type-oneoff">⚡️ One-off</label>
+
+              <input type="radio" id="type-recurring" name="type" value="recurring">
+              <label for="type-recurring">🔁 Recurring</label>
+            </div>
+          </div>
+
+          <!-- Recurring Options (Hidden by default) -->
+          <div id="advanced-options" class="advanced-options hidden">
+            <div class="form-row">
+              <label for="interval">Repeat Interval:</label>
+              <select id="interval">
+                <option value="daily">Daily</option>
+                <option value="weekly" selected>Weekly</option>
+                <option value="monthly">Monthly</option>
+                <option value="yearly">Yearly</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <input type="text" id="description" placeholder="Notes (Optional)" autocomplete="off">
+          </div>
+
+          <button type="submit" class="btn primary-btn">+ Add Reminder</button>
+        </form>
+      </section>
+
+      <!-- REMINDER LIST -->
+      <section class="reminders-section">
+        <h2>Active Reminders</h2>
+        <div id="reminders-container" class="reminders-grid">
+          <div class="empty-state">Loading...</div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <script src="/dory/app.js"></script>
+</body>
+</html>
