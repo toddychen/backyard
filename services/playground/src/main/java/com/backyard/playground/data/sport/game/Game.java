@@ -1,9 +1,9 @@
 package com.backyard.playground.data.sport.game;
 
-import java.time.Duration;
-
 import com.backyard.playground.cache.Expirable;
 import com.backyard.playground.data.api.yahoo.YahooGame;
+
+import java.time.Duration;
 
 public record Game(
         String gameId,
@@ -14,13 +14,12 @@ public record Game(
         String startTime,
         String gameStatus,
         int homeScore,
-        int awayScore) implements Expirable {
+        int awayScore)
+        implements Expirable {
 
     @Override
     public Duration cacheDuration() {
-        return "STARTED".equals(gameStatus)
-                ? Duration.ofSeconds(10)
-                : Duration.ofSeconds(60);
+        return "STARTED".equals(gameStatus) ? Duration.ofSeconds(10) : Duration.ofSeconds(60);
     }
 
     public static Game from(YahooGame g) {

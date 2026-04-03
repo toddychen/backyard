@@ -9,7 +9,7 @@
 
         <!-- Line length -->
         <setting id="org.eclipse.jdt.core.formatter.lineSplit" value="120"/>
-        <setting id="org.eclipse.jdt.core.formatter.comment.line_length" value="120"/>
+        <setting id="org.eclipse.jdt.core.formatter.comment.line_length" value="80"/>
         <setting id="org.eclipse.jdt.core.formatter.wrap_before_binary_operator" value="true"/>
 
         <!-- Braces — same line (K&R) -->

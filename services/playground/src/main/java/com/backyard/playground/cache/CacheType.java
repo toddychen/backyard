@@ -19,9 +19,8 @@ public enum CacheType {
     MULTI_LEVEL;
 
     /**
-     * Cache types that involve a distributed backend and therefore require
-     * a {@code RedisCacheManager} configuration entry.
+     * Cache types that involve a distributed backend and therefore require a {@code
+     * RedisCacheManager} configuration entry.
      */
-    public static final Set<CacheType> DISTRIBUTED_BACKED =
-            EnumSet.of(DISTRIBUTED, MULTI_LEVEL);
+    public static final Set<CacheType> DISTRIBUTED_BACKED = EnumSet.of(DISTRIBUTED, MULTI_LEVEL);
 }

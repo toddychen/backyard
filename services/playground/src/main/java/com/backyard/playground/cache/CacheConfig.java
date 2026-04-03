@@ -1,13 +1,13 @@
 package com.backyard.playground.cache;
 
-import java.util.Map;
+import io.micrometer.observation.ObservationRegistry;
 
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.EnableCaching;
-import org.springframework.context.annotation.Profile;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
+import org.springframework.context.annotation.Profile;
 import org.springframework.data.redis.cache.RedisCacheConfiguration;
 import org.springframework.data.redis.cache.RedisCacheManager;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
@@ -15,14 +15,15 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.serializer.RedisSerializationContext;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 
-import io.micrometer.observation.ObservationRegistry;
+import java.util.Map;
 
 /**
  * Wires all cache backends into a single {@link RoutingCacheManager}.
  *
  * <p>
- * To add a new cache: declare a name constant here, register a {@link CacheDefinition} in
- * {@link CacheDefinitionRegistry}, then ensure the appropriate backend bean is present for its {@link CacheType}.
+ * To add a new cache: declare a name constant here, register a
+ * {@link CacheDefinition} in {@link CacheDefinitionRegistry}, then ensure the
+ * appropriate backend bean is present for its {@link CacheType}.
  */
 @Configuration
 @Profile("!home")
@@ -36,7 +37,8 @@ public class CacheConfig {
 
     @Bean
     @Primary
-    public CacheManager cacheManager(CacheDefinitionRegistry registry,
+    public CacheManager cacheManager(
+            CacheDefinitionRegistry registry,
             CaffeineBackedCacheManager caffeineBackedCacheManager,
             RedisBackedCacheManager redisBackedCacheManager,
             MultiLevelCacheManager multiLevelCacheManager,
@@ -56,7 +58,8 @@ public class CacheConfig {
     }
 
     @Bean
-    public MultiLevelCacheManager multiLevelCacheManager(CacheDefinitionRegistry registry,
+    public MultiLevelCacheManager multiLevelCacheManager(
+            CacheDefinitionRegistry registry,
             CaffeineBackedCacheManager caffeineBackedCacheManager,
             RedisBackedCacheManager redisBackedCacheManager) {
         return new MultiLevelCacheManager(
@@ -64,7 +67,8 @@ public class CacheConfig {
     }
 
     @Bean
-    public RedisBackedCacheManager redisBackedCacheManager(RedisCacheManager redisCacheManager,
+    public RedisBackedCacheManager redisBackedCacheManager(
+            RedisCacheManager redisCacheManager,
             CacheDefinitionRegistry registry,
             RedisTemplate<String, Object> redisTemplate) {
         return new RedisBackedCacheManager(redisCacheManager, registry, redisTemplate);
@@ -73,35 +77,41 @@ public class CacheConfig {
     /**
      * Pre-populates {@link RedisCacheManager} with all DISTRIBUTED and MULTI_LEVEL
      * cache configurations from the registry. Spring manages lifecycle and calls
-     * {@code afterPropertiesSet()} automatically.
+     * {@code
+     * afterPropertiesSet()} automatically.
      */
     @Bean
-    public RedisCacheManager redisCacheManager(RedisConnectionFactory connectionFactory,
-            CacheDefinitionRegistry registry) {
+    public RedisCacheManager redisCacheManager(
+            RedisConnectionFactory connectionFactory, CacheDefinitionRegistry registry) {
         RedisCacheConfiguration defaultConfig = RedisCacheConfiguration.defaultCacheConfig()
-                .serializeKeysWith(RedisSerializationContext.SerializationPair
-                        .fromSerializer(new StringRedisSerializer()))
-                .serializeValuesWith(RedisSerializationContext.SerializationPair
-                        .fromSerializer(RedisBackedCacheManager.VALUE_SERIALIZER));
+                .serializeKeysWith(
+                        RedisSerializationContext.SerializationPair.fromSerializer(
+                                new StringRedisSerializer()))
+                .serializeValuesWith(
+                        RedisSerializationContext.SerializationPair.fromSerializer(
+                                RedisBackedCacheManager.VALUE_SERIALIZER));
 
-        var builder = RedisCacheManager.builder(connectionFactory)
-                .cacheDefaults(defaultConfig);
+        var builder = RedisCacheManager.builder(connectionFactory).cacheDefaults(defaultConfig);
 
         // Dynamic TTL caches are excluded — their TTL is set per-entry at runtime
         // via Expirable#cacheDuration() in RedisExpirableCache, not via config.
         // MULTI_LEVEL caches share the same Redis backend, so they are included.
         registry.all().stream()
-                .filter(def -> CacheType.DISTRIBUTED_BACKED.contains(def.getType())
-                        && !def.isDynamicTtl())
-                .forEach(def -> builder.withCacheConfiguration(
-                        def.getName(), defaultConfig.entryTtl(def.getDistributedTtl())));
+                .filter(
+                        def -> CacheType.DISTRIBUTED_BACKED.contains(def.getType())
+                                && !def.isDynamicTtl())
+                .forEach(
+                        def -> builder.withCacheConfiguration(
+                                def.getName(),
+                                defaultConfig.entryTtl(def.getDistributedTtl())));
 
         return builder.build();
     }
 
     /**
-     * Shared {@link RedisTemplate} used by {@link RedisExpirableCache} for dynamic TTL puts. Uses the same serializer
-     * as {@link RedisCacheManager} so values are mutually readable.
+     * Shared {@link RedisTemplate} used by {@link RedisExpirableCache} for dynamic
+     * TTL puts. Uses the same serializer as {@link RedisCacheManager} so values are
+     * mutually readable.
      */
     @Bean
     public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory connectionFactory) {

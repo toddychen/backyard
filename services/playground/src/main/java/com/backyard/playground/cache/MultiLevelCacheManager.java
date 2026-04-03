@@ -1,11 +1,11 @@
 package com.backyard.playground.cache;
 
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
+
 import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-
-import org.springframework.cache.Cache;
-import org.springframework.cache.CacheManager;
 
 /**
  * {@link CacheManager} delegate for {@link CacheType#MULTI_LEVEL} caches.
@@ -26,7 +26,8 @@ public class MultiLevelCacheManager implements CacheManager {
 
     private final Map<String, Cache> cacheMap = new ConcurrentHashMap<>();
 
-    public MultiLevelCacheManager(CacheDefinitionRegistry registry,
+    public MultiLevelCacheManager(
+            CacheDefinitionRegistry registry,
             CaffeineBackedCacheManager localManager,
             RedisBackedCacheManager distributedManager) {
         this.registry = registry;

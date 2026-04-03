@@ -1,0 +1,6 @@
+apiVersion: v2
+name: mysql
+description: MySQL 9 for local dev (Kind cluster only)
+type: application
+version: 0.1.0
+appVersion: "9"

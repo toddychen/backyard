@@ -11,12 +11,13 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 /**
- * Monitors Redis connectivity with periodic pings. Resets the Lettuce connection after {@link #FAILURE_THRESHOLD}
- * consecutive failures, allowing a fresh connection on the next cache access.
+ * Monitors Redis connectivity with periodic pings. Resets the Lettuce
+ * connection after {@link #FAILURE_THRESHOLD} consecutive failures, allowing a
+ * fresh connection on the next cache access.
  *
  * <p>
- * Since Redis is a cache layer, failures degrade to origin lookups rather than errors — the reset is a recovery aid,
- * not a circuit breaker.
+ * Since Redis is a cache layer, failures degrade to origin lookups rather than
+ * errors — the reset is a recovery aid, not a circuit breaker.
  */
 @Component
 @Profile("!home")
@@ -32,8 +33,7 @@ public class RedisConnectionMonitor {
     private int consecutiveFailures = 0;
 
     public RedisConnectionMonitor(
-            RedisTemplate<String, Object> redisTemplate,
-            RedisConnectionFactory connectionFactory) {
+            RedisTemplate<String, Object> redisTemplate, RedisConnectionFactory connectionFactory) {
         this.redisTemplate = redisTemplate;
         this.connectionFactory = connectionFactory;
     }
@@ -48,8 +48,10 @@ public class RedisConnectionMonitor {
             consecutiveFailures = 0;
         } catch (Exception e) {
             consecutiveFailures++;
-            log.warn("Redis ping failed ({}/{}): {}",
-                    consecutiveFailures, FAILURE_THRESHOLD,
+            log.warn(
+                    "Redis ping failed ({}/{}): {}",
+                    consecutiveFailures,
+                    FAILURE_THRESHOLD,
                     e.getMessage());
             if (consecutiveFailures >= FAILURE_THRESHOLD) {
                 resetConnection();

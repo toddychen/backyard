@@ -1,5 +1,8 @@
 replicas: 2
 
+# Explicit profile prevents accidental activation of application-dev.properties
+springProfile: kind
+
 image:
   repository: ghcr.io/<username>/service-playground
   tag: <git-sha>
@@ -29,3 +32,10 @@ redisPort: "6379"
 doryDbUrl: "jdbc:h2:file:/data/dory-kind"
 doryDataMount: true
 doryHostPath: "/Users/toddy/.backyard"
+
+# MySQL — connects to mysql.mysql (in-cluster service)
+mysqlHost: mysql.mysql
+mysqlPort: "3306"
+mysqlDb: playground
+mysqlUser: playground
+mysqlPassword: playground-kind

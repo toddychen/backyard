@@ -1,13 +1,5 @@
 package com.backyard.playground.service;
 
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
-import java.util.List;
-import java.util.UUID;
-
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import com.backyard.playground.data.dory.RecurrenceType;
 import com.backyard.playground.data.dory.ReminderEntity;
 import com.backyard.playground.data.dory.ReminderRepository;
@@ -15,6 +7,14 @@ import com.backyard.playground.data.dory.ReminderRequest;
 import com.backyard.playground.data.dory.ReminderResponse;
 import com.backyard.playground.data.dory.ReminderStatus;
 import com.backyard.playground.exception.NotFoundException;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.List;
+import java.util.UUID;
 
 @Service
 public class DoryService {
@@ -27,8 +27,7 @@ public class DoryService {
 
     @Transactional(readOnly = true)
     public List<ReminderResponse> findAll(String owner, ReminderStatus status) {
-        return repository.findByOwnerAndStatus(owner, status)
-                .stream()
+        return repository.findByOwnerAndStatus(owner, status).stream()
                 .map(ReminderResponse::from)
                 .toList();
     }
@@ -64,8 +63,7 @@ public class DoryService {
         var entity = findById(id);
         if ("recurring".equals(entity.getType())) {
             entity.setNextOccurrence(
-                    advance(entity.getNextOccurrence(),
-                            entity.getRecurrenceType()));
+                    advance(entity.getNextOccurrence(), entity.getRecurrenceType()));
             entity.setSnoozeUntil(null);
         } else {
             entity.setStatus(ReminderStatus.DONE);
@@ -93,19 +91,17 @@ public class DoryService {
     // -- helpers --
 
     private ReminderEntity findById(UUID id) {
-        return repository.findById(id)
-                .orElseThrow(() -> new NotFoundException(
-                        "Reminder not found: " + id));
+        return repository
+                .findById(id)
+                .orElseThrow(() -> new NotFoundException("Reminder not found: " + id));
     }
 
     private Instant advance(Instant current, RecurrenceType type) {
         return switch (type) {
-            case DAILY -> current.plus(1, ChronoUnit.DAYS);
-            case WEEKLY -> current.plus(7, ChronoUnit.DAYS);
-            case MONTHLY -> current.atZone(java.time.ZoneOffset.UTC)
-                    .plusMonths(1).toInstant();
-            case YEARLY -> current.atZone(java.time.ZoneOffset.UTC)
-                    .plusYears(1).toInstant();
+        case DAILY -> current.plus(1, ChronoUnit.DAYS);
+        case WEEKLY -> current.plus(7, ChronoUnit.DAYS);
+        case MONTHLY -> current.atZone(java.time.ZoneOffset.UTC).plusMonths(1).toInstant();
+        case YEARLY -> current.atZone(java.time.ZoneOffset.UTC).plusYears(1).toInstant();
         };
     }
 }

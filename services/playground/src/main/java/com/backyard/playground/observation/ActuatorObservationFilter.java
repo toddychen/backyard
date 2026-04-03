@@ -1,16 +1,15 @@
 package com.backyard.playground.observation;
 
-import org.springframework.http.server.observation.ServerRequestObservationContext;
-import org.springframework.stereotype.Component;
-
 import io.micrometer.observation.Observation;
 import io.micrometer.observation.ObservationPredicate;
 
+import org.springframework.http.server.observation.ServerRequestObservationContext;
+import org.springframework.stereotype.Component;
+
 /**
- * Excludes noisy internal paths from tracing. Filtering at the
- * Micrometer Observation layer means no span is created at all —
- * cleaner than sampler-based approaches which still create the span
- * before discarding it.
+ * Excludes noisy internal paths from tracing. Filtering at the Micrometer
+ * Observation layer means no span is created at all — cleaner than
+ * sampler-based approaches which still create the span before discarding it.
  */
 @Component
 public class ActuatorObservationFilter implements ObservationPredicate {

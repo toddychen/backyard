@@ -1,27 +1,30 @@
 package com.backyard.playground.cache;
 
-import java.util.OptionalLong;
-import java.util.concurrent.Callable;
-import java.util.concurrent.TimeUnit;
+import io.micrometer.observation.Observation;
+import io.micrometer.observation.ObservationRegistry;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.cache.Cache;
 
-import io.micrometer.observation.Observation;
-import io.micrometer.observation.ObservationRegistry;
+import java.util.OptionalLong;
+import java.util.concurrent.Callable;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Wraps any {@link Cache} delegate with two cross-cutting concerns:
  *
  * <p>
- * <b>Tracing:</b> creates a {@code cache.get} span (tagged with {@code cache.hit=true/false}) and a {@code cache.put}
- * span for every operation, visible in Jaeger as child spans of the active request trace.
+ * <b>Tracing:</b> creates a {@code cache.get} span (tagged with
+ * {@code cache.hit=true/false}) and a {@code cache.put} span for every
+ * operation, visible in Jaeger as child spans of the active request trace.
  *
  * <p>
- * <b>Logging:</b> logs cache hits and misses at DEBUG level — enable in dev by setting
- * {@code logging.level.com.backyard.playground.cache=DEBUG}. For Caffeine caches, hit logs include remaining TTL (free,
- * in-memory lookup). For Redis, TTL is omitted to avoid an extra network round-trip per hit.
+ * <b>Logging:</b> logs cache hits and misses at DEBUG level — enable in dev by
+ * setting {@code
+ * logging.level.com.backyard.playground.cache=DEBUG}. For Caffeine caches, hit
+ * logs include remaining TTL (free, in-memory lookup). For Redis, TTL is
+ * omitted to avoid an extra network round-trip per hit.
  */
 public class InstrumentedCache implements Cache {
 
@@ -39,8 +42,7 @@ public class InstrumentedCache implements Cache {
 
     @Override
     public ValueWrapper get(Object key) {
-        Observation obs = Observation
-                .createNotStarted("cache.get", observationRegistry)
+        Observation obs = Observation.createNotStarted("cache.get", observationRegistry)
                 .lowCardinalityKeyValue("cache.type", cacheType)
                 .lowCardinalityKeyValue("cache.name", delegate.getName())
                 .highCardinalityKeyValue("cache.key", String.valueOf(key))
@@ -57,8 +59,11 @@ public class InstrumentedCache implements Cache {
             } else {
                 OptionalLong remaining = remainingSeconds(key);
                 if (remaining.isPresent()) {
-                    log.debug("cache HIT:  cache='{}' key='{}' expires in {}s",
-                            delegate.getName(), key, remaining.getAsLong());
+                    log.debug(
+                            "cache HIT:  cache='{}' key='{}' expires in {}s",
+                            delegate.getName(),
+                            key,
+                            remaining.getAsLong());
                 } else {
                     log.debug("cache HIT:  cache='{}' key='{}'", delegate.getName(), key);
                 }
@@ -69,8 +74,7 @@ public class InstrumentedCache implements Cache {
 
     @Override
     public void put(Object key, Object value) {
-        Observation obs = Observation
-                .createNotStarted("cache.put", observationRegistry)
+        Observation obs = Observation.createNotStarted("cache.put", observationRegistry)
                 .lowCardinalityKeyValue("cache.type", cacheType)
                 .lowCardinalityKeyValue("cache.name", delegate.getName())
                 .highCardinalityKeyValue("cache.key", String.valueOf(key))
@@ -86,9 +90,11 @@ public class InstrumentedCache implements Cache {
      *
      * <p>
      * Caffeine: resolved from the in-memory cache policy — free, no I/O.
+     *
      * <p>
-     * Redis: not implemented — querying TTL requires a separate network call ({@code TTL key}), which is too expensive
-     * to do on every cache hit just for a log line. Returns empty; callers log the hit without TTL detail.
+     * Redis: not implemented — querying TTL requires a separate network call
+     * ({@code TTL key}), which is too expensive to do on every cache hit just for a
+     * log line. Returns empty; callers log the hit without TTL detail.
      */
     @SuppressWarnings("unchecked")
     private OptionalLong remainingSeconds(Object key) {

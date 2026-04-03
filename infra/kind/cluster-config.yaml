@@ -19,6 +19,10 @@ nodes:
       - containerPort: 30379
         hostPort: 30379
         protocol: TCP
+      # MySQL (local dev profile connects to kind cluster)
+      - containerPort: 30306
+        hostPort: 30306
+        protocol: TCP
       # Grafana UI
       - containerPort: 30030
         hostPort: 30030

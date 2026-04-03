@@ -1,8 +1,8 @@
 package com.backyard.playground.data.api.ambee;
 
-import java.util.Map;
-
 import com.fasterxml.jackson.annotation.JsonProperty;
+
+import java.util.Map;
 
 public record PollenSpecies(
         @JsonProperty("Grass") Map<String, Integer> grass,

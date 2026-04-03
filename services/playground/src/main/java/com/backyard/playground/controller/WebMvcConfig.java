@@ -11,10 +11,14 @@ public class WebMvcConfig implements WebMvcConfigurer {
 
     @Override
     public void configurePathMatch(PathMatchConfigurer configurer) {
-        // Prepends /api to all @RestController mappings globally — controllers
-        // declare only /{version}/resource without the /api prefix.
-        configurer.addPathPrefix("/api",
-                c -> c.isAnnotationPresent(RestController.class));
+        // Prepends /api to all @RestController mappings, excluding springdoc's
+        // internal controllers. Without this exclusion, springdoc's endpoints
+        // (e.g. /v3/api-docs) become /api/v3/api-docs, and the versioning
+        // middleware tries to parse "v3" as an API version and rejects it.
+        configurer.addPathPrefix(
+                "/api",
+                c -> c.isAnnotationPresent(RestController.class)
+                        && !c.getPackageName().startsWith("org.springdoc"));
     }
 
     @Override
@@ -26,7 +30,8 @@ public class WebMvcConfig implements WebMvcConfigurer {
         // non-API paths like /dory/toddy would have "toddy" parsed as a version.
         // setVersionRequired(false) allows non-API handlers (e.g. DoryUiController)
         // to match without providing a version.
-        configurer.usePathSegment(1, path -> path.value().startsWith("/api"))
-                  .setVersionRequired(false);
+        configurer
+                .usePathSegment(1, path -> path.value().startsWith("/api"))
+                .setVersionRequired(false);
     }
 }

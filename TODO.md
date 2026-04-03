@@ -247,6 +247,125 @@ Add Swagger UI and OpenAPI spec generation so all API endpoints are self-documen
 
 ---
 
+## User Authentication & Authorization
+
+Secure API endpoints with identity verification and access control.
+
+**What to implement:**
+- **Authentication** — verify who the caller is (JWT / OAuth2 / API key)
+- **Authorization** — enforce what an authenticated caller is allowed to do
+  (e.g. a user can only read/write their own Dory reminders)
+
+**Options:**
+- **Spring Security + JWT** — stateless auth via signed tokens. Client
+  sends `Authorization: Bearer <token>` on every request. Service verifies
+  signature and extracts claims (user ID, roles) without hitting a DB.
+- **OAuth2 / OIDC (Google, Auth0, Keycloak)** — delegate identity to an
+  external provider. Service validates the access token against the
+  provider's JWKS endpoint. Good for user-facing flows.
+- **API key** — simple for machine-to-machine calls. Key passed as a
+  header, validated against a secret store. No expiry/rotation built in.
+
+**What needs to be done:**
+- Add `spring-boot-starter-security`
+- Choose auth mechanism (JWT self-issued vs OIDC provider)
+- Define a `SecurityFilterChain`: public paths (`/actuator/health`,
+  `/dory/**` SPA assets) vs protected paths (`/api/**`)
+- Extract caller identity from the token and enforce ownership checks
+  (e.g. Dory endpoint: `owner` in path must match authenticated user ID)
+- Store secrets (JWT signing key, OAuth2 client secret) in GCP Secret
+  Manager
+
+**Goal:**
+- Prevent unauthorized access to personal data (Dory reminders)
+- Provide a foundation for per-user data isolation as features grow
+
+---
+
+## Streaming Endpoints — SSE & WebSockets
+
+Add support for long-lived, push-based endpoint types beyond standard
+request/response REST.
+
+### Server-Sent Events (SSE)
+
+One-way server-to-client streaming over a persistent HTTP connection.
+The standard protocol used by AI streaming APIs (OpenAI, Anthropic, etc.)
+to push token chunks as they're generated.
+
+**What to implement:**
+- Expose endpoints that return `text/event-stream` using Spring's
+  `SseEmitter` or reactive `Flux<ServerSentEvent<T>>`
+- Stream AI model output tokens to the client as they arrive, instead of
+  waiting for the full response
+- Handle client disconnects and emitter timeouts gracefully
+
+**What needs to be done:**
+- Add an SSE endpoint returning `SseEmitter` (blocking) or use
+  `spring-boot-starter-webflux` for reactive `Flux`-based streaming
+- Wire an AI client (e.g. Anthropic SDK stream method) to emit tokens
+  as `ServerSentEvent` objects
+- Set appropriate timeouts and handle `IOException` on emitter completion
+- Test with `curl -N` or a browser `EventSource` client
+
+### WebSockets
+
+Bi-directional, full-duplex messaging over a persistent connection.
+Good for chat interfaces, real-time dashboards, or any use case where
+the client also needs to send messages mid-stream.
+
+**What to implement:**
+- Expose a WebSocket endpoint using Spring's `@ServerEndpoint` or
+  `WebSocketHandler`
+- Handle connect, message, and disconnect lifecycle events
+- Support a simple echo or chat pattern as a starting point
+
+**What needs to be done:**
+- Add `spring-boot-starter-websocket` dependency
+- Configure a `WebSocketHandler` and register it at a path
+- Decide on message format: raw text, JSON frames, or STOMP (if
+  pub/sub fan-out is needed)
+- Add STOMP + SockJS if browser fallback or topic broadcasting is needed
+
+**Goal:**
+- Learn the full range of HTTP endpoint patterns beyond REST
+- Enable AI token-streaming responses to clients (SSE)
+- Enable real-time bidirectional communication (WebSockets)
+
+---
+
+## gRPC Support
+
+Add gRPC as a supported protocol for both inbound server endpoints and outbound
+client calls, alongside the existing REST/Feign layer.
+
+**What to implement:**
+- **Inbound gRPC endpoints** — expose service methods as gRPC RPCs so callers
+  can invoke them over HTTP/2 with protobuf-encoded messages
+- **Outbound gRPC client calls** — call downstream services that expose gRPC
+  APIs using a generated stub (the gRPC equivalent of a Feign client)
+
+**What needs to be done:**
+- Define `.proto` files for inbound service contracts
+- Add `grpc-spring-boot-starter` (e.g. `net.devh:grpc-spring-boot-starter`)
+  to `pom.xml` and configure the gRPC server port
+- Implement `@GrpcService`-annotated classes that extend the generated server
+  base classes
+- Generate client stubs from `.proto` files for outbound calls; inject and use
+  `@GrpcClient`-annotated stubs in service classes
+- Configure TLS for gRPC connections in stage/prod
+- Expose gRPC health check via the standard `grpc.health.v1.Health` service
+- Decide on protobuf vs JSON transcoding (grpc-gateway or Spring's HTTP/gRPC
+  bridge) if REST interoperability is needed
+
+**Goal:**
+- Support high-efficiency, strongly-typed service-to-service communication
+- Learn both sides: serving gRPC traffic and consuming gRPC upstream APIs
+- Establish patterns for proto contract ownership and code generation in the
+  build pipeline
+
+---
+
 ## Message Queue Service
 
 Introduce a distributed message queue to decouple services, handle async workloads, and absorb traffic spikes.

@@ -1,19 +1,20 @@
 package com.backyard.playground.cache;
 
-import java.util.concurrent.Callable;
-
 import org.springframework.cache.Cache;
 
+import java.util.concurrent.Callable;
+
 /**
- * Two-level cache: checks LOCAL (Caffeine) first, falls through to DISTRIBUTED (Redis) on miss, and populates the local
- * cache on a distributed hit.
+ * Two-level cache: checks LOCAL (Caffeine) first, falls through to DISTRIBUTED
+ * (Redis) on miss, and populates the local cache on a distributed hit.
  *
  * <p>
- * Writes go to both levels so the local cache is always warm. Evictions and clears are propagated to both levels to
- * prevent stale reads.
+ * Writes go to both levels so the local cache is always warm. Evictions and
+ * clears are propagated to both levels to prevent stale reads.
  *
  * <p>
- * Not a Spring {@code @Component} — built by {@link MultiLevelCacheManager} per registered cache name.
+ * Not a Spring {@code @Component} — built by {@link MultiLevelCacheManager} per
+ * registered cache name.
  */
 public class MultiLevelCache implements Cache {
 

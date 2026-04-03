@@ -6,7 +6,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public enum SupportedCity {
-
     SAN_JOSE("san-jose", 37.3716914, -121.8619539);
 
     private final String slug;
@@ -25,9 +24,11 @@ public enum SupportedCity {
     public String getSlug() {
         return slug;
     }
+
     public double getLatitude() {
         return latitude;
     }
+
     public double getLongitude() {
         return longitude;
     }

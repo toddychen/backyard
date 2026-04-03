@@ -1,14 +1,5 @@
 package com.backyard.playground.controller;
 
-import java.util.UUID;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.RestControllerAdvice;
-
 import com.backyard.playground.exception.BadRequestException;
 import com.backyard.playground.exception.ConflictException;
 import com.backyard.playground.exception.ForbiddenException;
@@ -16,10 +7,18 @@ import com.backyard.playground.exception.NotFoundException;
 import com.backyard.playground.exception.ServiceUnavailableException;
 import com.backyard.playground.exception.UnauthorizedException;
 
-import org.springframework.web.client.RestClientException;
-
 import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
+
+import java.util.UUID;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -76,15 +75,11 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(CallNotPermittedException.class)
-    public ResponseEntity<ErrorResponse> handleCircuitOpen(
-            CallNotPermittedException ex) {
+    public ResponseEntity<ErrorResponse> handleCircuitOpen(CallNotPermittedException ex) {
         String errorId = generateErrorId();
-        log.warn("circuit open for '{}': errorId='{}'",
-                ex.getCausingCircuitBreakerName(), errorId);
+        log.warn("circuit open for '{}': errorId='{}'", ex.getCausingCircuitBreakerName(), errorId);
         return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
-                .body(new ErrorResponse(503,
-                        "upstream service temporarily unavailable",
-                        errorId));
+                .body(new ErrorResponse(503, "upstream service temporarily unavailable", errorId));
     }
 
     // Catches unhandled RestClient failures — network errors, unexpected

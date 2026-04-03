@@ -1,0 +1,7 @@
+database: playground
+user: playground
+password: playground-kind
+rootPassword: root-kind
+
+# Persist MySQL data to host machine
+dataHostPath: /Users/toddy/.backyard/mysql-kind

@@ -1,12 +1,6 @@
 package com.backyard.playground.service;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.cache.annotation.Cacheable;
-import org.springframework.stereotype.Service;
-
 import com.backyard.playground.cache.CacheConfig;
-
 import com.backyard.playground.client.AmbeePollenClient;
 import com.backyard.playground.data.api.ambee.AmbeePollenResponse;
 import com.backyard.playground.data.api.ambee.PollenData;
@@ -15,6 +9,11 @@ import com.backyard.playground.data.weather.pollen.PollenCategory;
 import com.backyard.playground.data.weather.pollen.PollenReport;
 import com.backyard.playground.exception.NotFoundException;
 import com.backyard.playground.exception.ServiceUnavailableException;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.stereotype.Service;
 
 @Service
 public class WeatherService {
@@ -47,9 +46,11 @@ public class WeatherService {
                 response.lat(),
                 response.lng(),
                 d.updatedAt(),
-                new PollenCategory(d.count().grassPollen(), d.risk().grassPollen(), d.species().grass()),
-                new PollenCategory(d.count().treePollen(), d.risk().treePollen(), d.species().tree()),
-                new PollenCategory(d.count().weedPollen(), d.risk().weedPollen(), d.species().weed()));
+                new PollenCategory(
+                        d.count().grassPollen(), d.risk().grassPollen(), d.species().grass()),
+                new PollenCategory(
+                        d.count().treePollen(), d.risk().treePollen(), d.species().tree()),
+                new PollenCategory(
+                        d.count().weedPollen(), d.risk().weedPollen(), d.species().weed()));
     }
-
 }

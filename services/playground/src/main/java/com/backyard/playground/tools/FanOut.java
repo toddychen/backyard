@@ -1,5 +1,14 @@
 package com.backyard.playground.tools;
 
+import io.micrometer.context.ContextExecutorService;
+import io.micrometer.context.ContextSnapshotFactory;
+import io.micrometer.observation.Observation;
+import io.micrometer.observation.ObservationRegistry;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
+
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ExecutorService;
@@ -7,21 +16,13 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.function.Function;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
-
-import io.micrometer.context.ContextExecutorService;
-import io.micrometer.context.ContextSnapshotFactory;
-import io.micrometer.observation.Observation;
-import io.micrometer.observation.ObservationRegistry;
-
 /**
- * Executes a mapping function over a list in parallel using virtual threads, wrapping each item's work in a trace span.
+ * Executes a mapping function over a list in parallel using virtual threads,
+ * wrapping each item's work in a trace span.
  *
  * <p>
  * Usage:
- * 
+ *
  * <pre>
  * List&lt;Game&gt; games = fanOut.map(
  *         rawGames,
@@ -31,8 +32,8 @@ import io.micrometer.observation.ObservationRegistry;
  * </pre>
  *
  * <p>
- * Each item runs on its own virtual thread. The span name and item key appear in Jaeger, with any child spans (cache,
- * outbound calls) nested underneath.
+ * Each item runs on its own virtual thread. The span name and item key appear
+ * in Jaeger, with any child spans (cache, outbound calls) nested underneath.
  */
 @Component
 public class FanOut {
@@ -62,41 +63,50 @@ public class FanOut {
     }
 
     /**
-     * Maps each item in parallel. Null results are filtered out (e.g. item not found). Exceptions per item are logged
-     * as warnings and skipped.
+     * Maps each item in parallel. Null results are filtered out (e.g. item not
+     * found). Exceptions per item are logged as warnings and skipped.
      *
      * @param items    input list
      * @param task     function to apply to each item (may do I/O)
-     * @param spanName span name suffix — prefixed with {@code "virtual-thread:"} so spans appear as e.g.
-     *                 {@code "virtual-thread:game.details"} in Jaeger
-     * @param spanKey  extracts a value tagged as {@code item.id} on the span, or {@code null} to omit the tag
+     * @param spanName span name suffix — prefixed with {@code "virtual-thread:"} so
+     *                 spans appear as e.g. {@code "virtual-thread:game.details"} in
+     *                 Jaeger
+     * @param spanKey  extracts a value tagged as {@code item.id} on the span, or
+     *                 {@code null} to omit the tag
      */
-    public <T, R> List<R> map(List<T> items, Function<T, R> task, String spanName, Function<T, String> spanKey) {
+    public <T, R> List<R> map(
+            List<T> items, Function<T, R> task, String spanName, Function<T, String> spanKey) {
         try (ExecutorService executor = ContextExecutorService.wrap(
                 Executors.newVirtualThreadPerTaskExecutor(),
                 contextSnapshotFactory::captureAll)) {
             List<Future<R>> futures = items.stream()
-                    .map(item -> executor.submit(() -> {
-                        Observation obs = Observation.createNotStarted(SPAN_PREFIX + spanName, observationRegistry);
-                        if (spanKey != null)
-                            obs.lowCardinalityKeyValue("item.id", spanKey.apply(item));
-                        obs.start();
-                        try (var scope = obs.openScope()) {
-                            return task.apply(item);
-                        } finally {
-                            obs.stop();
-                        }
-                    }))
+                    .map(
+                            item -> executor.submit(
+                                    () -> {
+                                        Observation obs = Observation.createNotStarted(
+                                                SPAN_PREFIX + spanName,
+                                                observationRegistry);
+                                        if (spanKey != null)
+                                            obs.lowCardinalityKeyValue(
+                                                    "item.id", spanKey.apply(item));
+                                        obs.start();
+                                        try (var scope = obs.openScope()) {
+                                            return task.apply(item);
+                                        } finally {
+                                            obs.stop();
+                                        }
+                                    }))
                     .toList();
             return futures.stream()
-                    .map(f -> {
-                        try {
-                            return f.get();
-                        } catch (Exception e) {
-                            log.warn("fan-out task failed", e);
-                            return null;
-                        }
-                    })
+                    .map(
+                            f -> {
+                                try {
+                                    return f.get();
+                                } catch (Exception e) {
+                                    log.warn("fan-out task failed", e);
+                                    return null;
+                                }
+                            })
                     .filter(Objects::nonNull)
                     .toList();
         }

@@ -1,13 +1,13 @@
 package com.backyard.playground.cache;
 
-import java.util.Collection;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import io.micrometer.observation.ObservationRegistry;
 
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 
-import io.micrometer.observation.ObservationRegistry;
+import java.util.Collection;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * {@link CacheManager} that routes each named cache to the correct backing
@@ -26,8 +26,8 @@ import io.micrometer.observation.ObservationRegistry;
  * Each delegate manager is responsible for its own internal wrapping (e.g.
  * {@link RedisBackedCacheManager} wraps with {@link RedisExpirableCache} for
  * dynamic TTL). {@link RoutingCacheManager} then wraps the result with
- * {@link InstrumentedCache} as the outermost layer, so that tracing and
- * metrics cover the full cache interaction regardless of backend.
+ * {@link InstrumentedCache} as the outermost layer, so that tracing and metrics
+ * cover the full cache interaction regardless of backend.
  */
 public class RoutingCacheManager implements CacheManager {
 
@@ -40,7 +40,8 @@ public class RoutingCacheManager implements CacheManager {
 
     private final Map<String, Cache> cacheMap = new ConcurrentHashMap<>();
 
-    public RoutingCacheManager(CacheDefinitionRegistry registry,
+    public RoutingCacheManager(
+            CacheDefinitionRegistry registry,
             Map<CacheType, CacheManager> delegates,
             ObservationRegistry observationRegistry) {
         this.registry = registry;
