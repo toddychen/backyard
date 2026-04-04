@@ -20,6 +20,30 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:9
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: playground
+          MYSQL_USER: playground
+          MYSQL_PASSWORD: playground-ci
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+      redis:
+        image: redis:latest
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
     env:
       # GitHub is deprecating the Node.js 20 runtime for actions; force Node.js 24 now to avoid warnings.
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
@@ -34,7 +58,7 @@ jobs:
           java-version: "21"
           cache: maven
       - name: Test
-        run: ./mvnw -f services/playground/pom.xml -B test
+        run: ./mvnw -f services/playground/pom.xml -B test -Dspring.profiles.active=ci
 
       - name: Test Report (JUnit)
         if: ${{ !cancelled() }}

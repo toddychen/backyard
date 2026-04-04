@@ -30,7 +30,7 @@ import java.nio.charset.StandardCharsets;
  * </ul>
  */
 @Component
-@Profile("!dev & !home & !kind")
+@Profile("!dev & !home & !kind & !ci")
 public class SecretManagerLoader {
 
     private static final Logger log = LoggerFactory.getLogger(SecretManagerLoader.class);
