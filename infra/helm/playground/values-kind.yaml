@@ -27,11 +27,14 @@ tracingSamplingProbability: "1.0"
 redisHost: redis.redis
 redisPort: "6379"
 
-# H2 dory DB — persisted to host machine via hostPath volume
-# Container writes to /data/dory; host sees ~/.backyard/dory-kind.mv.db
-doryDbUrl: "jdbc:h2:file:/data/dory-kind"
-doryDataMount: true
-doryHostPath: "/Users/toddy/.backyard"
+# H2 — persisted to host machine via hostPath volume
+h2DbUrl: "jdbc:h2:file:/data/h2-kind"
+h2DataMount: true
+h2HostPath: "/Users/toddy/.backyard"
+
+# MySQL — connects to mysql.mysql (in-cluster service)
+# JWT signing secret — min 32 chars for HS256
+jwtSecret: kind-secret-for-local-use-only-padding
 
 # MySQL — connects to mysql.mysql (in-cluster service)
 mysqlHost: mysql.mysql

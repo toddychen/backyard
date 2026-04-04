@@ -686,13 +686,13 @@ profile from loading `application-dev.properties` (which sets
 | `OTEL_TRACING_ENABLED` | set if `otlpEndpoint` present | Enables OTLP export |
 | `MANAGEMENT_OPENTELEMETRY_TRACING_EXPORT_OTLP_ENDPOINT` | `otlpEndpoint` | Jaeger endpoint |
 | `TRACING_SAMPLING_PROBABILITY` | `tracingSamplingProbability` | Sampling rate |
-| `DORY_DB_URL` | `doryDbUrl` | H2 file path |
+| `H2_DB_URL` | `h2DbUrl` | H2 file path |
 
 ### H2 persistence in KinD
 
-`values-kind.yaml` sets `doryDataMount: true` and `doryHostPath:
+`values-kind.yaml` sets `h2DataMount: true` and `h2HostPath:
 ~/.backyard`. The deployment template mounts this as a `hostPath` volume
-at `/data` in the container, so `DORY_DB_URL=jdbc:h2:file:/data/dory-kind`
+at `/data` in the container, so `H2_DB_URL=jdbc:h2:file:/data/h2-kind`
 persists the H2 file across pod restarts.
 
 ---

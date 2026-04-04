@@ -57,9 +57,13 @@ spec:
             - name: TRACING_SAMPLING_PROBABILITY
               value: {{ .Values.tracingSamplingProbability | quote }}
             {{- end }}
-            {{- if .Values.doryDbUrl }}
-            - name: DORY_DB_URL
-              value: {{ .Values.doryDbUrl | quote }}
+            {{- if .Values.jwtSecret }}
+            - name: AUTH_JWT_SECRET
+              value: {{ .Values.jwtSecret | quote }}
+            {{- end }}
+            {{- if .Values.h2DbUrl }}
+            - name: H2_DB_URL
+              value: {{ .Values.h2DbUrl | quote }}
             {{- end }}
             {{- if .Values.mysqlHost }}
             - name: MYSQL_URL
@@ -69,9 +73,9 @@ spec:
             - name: MYSQL_PASSWORD
               value: {{ .Values.mysqlPassword | quote }}
             {{- end }}
-          {{- if .Values.doryDataMount }}
+          {{- if .Values.h2DataMount }}
           volumeMounts:
-            - name: dory-data
+            - name: h2-data
               mountPath: /data
           {{- end }}
           livenessProbe:
@@ -88,10 +92,10 @@ spec:
             periodSeconds: {{ .Values.readinessProbe.periodSeconds }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
-      {{- if .Values.doryDataMount }}
+      {{- if .Values.h2DataMount }}
       volumes:
-        - name: dory-data
+        - name: h2-data
           hostPath:
-            path: {{ .Values.doryHostPath }}
+            path: {{ .Values.h2HostPath }}
             type: DirectoryOrCreate
       {{- end }}
