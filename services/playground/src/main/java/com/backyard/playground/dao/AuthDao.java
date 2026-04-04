@@ -82,6 +82,7 @@ public class AuthDao {
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void rotateRefreshToken(RefreshToken old, String newTokenHash, Instant expiresAt) {
         old.revoke();
+        refreshTokenRepository.save(old);
         refreshTokenRepository.save(new RefreshToken(old.getUser(), newTokenHash, old.getFamilyId(), expiresAt));
     }
 
@@ -94,7 +95,10 @@ public class AuthDao {
     /** Revokes a refresh token by hash if it exists. No-op if not found. */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void revokeRefreshToken(String hash) {
-        refreshTokenRepository.findByTokenHash(hash).ifPresent(RefreshToken::revoke);
+        refreshTokenRepository.findByTokenHash(hash).ifPresent(t -> {
+            t.revoke();
+            refreshTokenRepository.save(t);
+        });
     }
 
     /** Updates a user's password hash. */
