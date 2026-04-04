@@ -39,7 +39,7 @@ public class SecretManagerLoader {
         try (SecretManagerServiceClient client = SecretManagerServiceClient.create()) {
             setProperty("auth.jwt.secret", load(client, projectId, "playground-jwt-secret"));
             setProperty(
-                    "auth.mysql.password", load(client, projectId, "playground-mysql-password"));
+                    "mysql.password", load(client, projectId, "playground-mysql-password"));
         } catch (Exception e) {
             throw new IllegalStateException("Failed to load secrets from GCP Secret Manager", e);
         }

@@ -6,6 +6,7 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 
 import java.nio.charset.StandardCharsets;
@@ -26,6 +27,7 @@ import javax.crypto.SecretKey;
  * UUID string. A {@code jti} claim is included so the token can be added to a
  * denylist on logout.
  */
+@Profile("!home")
 @Service
 public class JwtTokenService {
 

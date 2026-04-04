@@ -1,4 +1,4 @@
-package com.backyard.playground.data.auth;
+package com.backyard.playground.data.persist.mysql.auth;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

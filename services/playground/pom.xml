@@ -24,10 +24,11 @@
     </properties>
 
     <dependencies>
-        <!-- Core web framework: embedded Tomcat, Spring MVC, REST controllers -->
+        <!-- Core web framework: embedded Tomcat, Spring MVC, REST controllers,
+             Jackson JSON support -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-webmvc</artifactId>
+            <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
 
         <!-- Health check endpoints (/actuator/health) used by Kubernetes liveness/readiness probes -->
@@ -47,14 +48,6 @@
             <groupId>net.logstash.logback</groupId>
             <artifactId>logstash-logback-encoder</artifactId>
             <version>${logstash.logback.encoder.version}</version>
-        </dependency>
-
-        <!-- Dev-only: auto-restarts the app on code changes without a full rebuild -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-devtools</artifactId>
-            <scope>runtime</scope>
-            <optional>true</optional>
         </dependency>
 
         <!-- Declarative HTTP clients: Spring Framework 7 @HttpExchange interfaces

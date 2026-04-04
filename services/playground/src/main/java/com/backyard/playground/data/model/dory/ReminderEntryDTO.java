@@ -1,9 +1,13 @@
-package com.backyard.playground.data.dory;
+package com.backyard.playground.data.model.dory;
+
+import com.backyard.playground.data.persist.h2.dory.RecurrenceType;
+import com.backyard.playground.data.persist.h2.dory.ReminderEntry;
+import com.backyard.playground.data.persist.h2.dory.ReminderStatus;
 
 import java.time.Instant;
 import java.util.UUID;
 
-public record ReminderResponse(
+public record ReminderEntryDTO(
         UUID id,
         String owner,
         String title,
@@ -15,8 +19,8 @@ public record ReminderResponse(
         ReminderStatus status,
         Instant completedAt) {
 
-    public static ReminderResponse from(ReminderEntity e) {
-        return new ReminderResponse(
+    public static ReminderEntryDTO from(ReminderEntry e) {
+        return new ReminderEntryDTO(
                 e.getId(),
                 e.getOwner(),
                 e.getTitle(),

@@ -1,4 +1,4 @@
-package com.backyard.playground.data.dory;
+package com.backyard.playground.data.persist.h2.dory;
 
 public enum RecurrenceType {
     DAILY,

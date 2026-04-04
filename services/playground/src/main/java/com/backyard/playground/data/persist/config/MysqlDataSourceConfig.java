@@ -1,4 +1,5 @@
-package com.backyard.playground.data.auth;
+package com.backyard.playground.data.persist.config;
+import org.springframework.context.annotation.Profile;
 
 import jakarta.persistence.EntityManagerFactory;
 
@@ -18,18 +19,20 @@ import java.util.Map;
 import javax.sql.DataSource;
 
 /**
- * Datasource for the MySQL auth database. Covers entities in {@code data.auth}
- * only.
+ * Datasource for MySQL. Covers all entities under {@code data.persist.mysql} —
+ * add new MySQL domains as sub-packages there and they are picked up
+ * automatically.
  */
+@Profile("!home")
 @Configuration
-@EnableJpaRepositories(basePackages = "com.backyard.playground.data.auth", entityManagerFactoryRef = "authEntityManagerFactory", transactionManagerRef = "authTransactionManager")
-public class AuthDataSourceConfig {
+@EnableJpaRepositories(basePackages = "com.backyard.playground.data.persist.mysql", entityManagerFactoryRef = "mysqlEntityManagerFactory", transactionManagerRef = "mysqlTransactionManager")
+public class MysqlDataSourceConfig {
 
-    @Bean
-    public DataSource authDataSource(
-            @Value("${auth.mysql.url}") String url,
-            @Value("${auth.mysql.username}") String username,
-            @Value("${auth.mysql.password}") String password) {
+    @Bean("mysqlDataSource")
+    public DataSource mysqlDataSource(
+            @Value("${mysql.url}") String url,
+            @Value("${mysql.username}") String username,
+            @Value("${mysql.password}") String password) {
         return DataSourceBuilder.create()
                 .url(url)
                 .username(username)
@@ -38,13 +41,13 @@ public class AuthDataSourceConfig {
                 .build();
     }
 
-    @Bean
-    public LocalContainerEntityManagerFactoryBean authEntityManagerFactory(
-            @Qualifier("authDataSource") DataSource dataSource) {
+    @Bean("mysqlEntityManagerFactory")
+    public LocalContainerEntityManagerFactoryBean mysqlEntityManagerFactory(
+            @Qualifier("mysqlDataSource") DataSource dataSource) {
         LocalContainerEntityManagerFactoryBean em = new LocalContainerEntityManagerFactoryBean();
         em.setDataSource(dataSource);
-        em.setPackagesToScan("com.backyard.playground.data.auth");
-        em.setPersistenceUnitName("auth");
+        em.setPackagesToScan("com.backyard.playground.data.persist.mysql");
+        em.setPersistenceUnitName("mysql");
         em.setJpaVendorAdapter(new HibernateJpaVendorAdapter());
         em.setJpaPropertyMap(
                 Map.of(
@@ -55,9 +58,9 @@ public class AuthDataSourceConfig {
         return em;
     }
 
-    @Bean
-    public PlatformTransactionManager authTransactionManager(
-            @Qualifier("authEntityManagerFactory") EntityManagerFactory emf) {
+    @Bean("mysqlTransactionManager")
+    public PlatformTransactionManager mysqlTransactionManager(
+            @Qualifier("mysqlEntityManagerFactory") EntityManagerFactory emf) {
         return new JpaTransactionManager(emf);
     }
 }

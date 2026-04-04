@@ -7,7 +7,7 @@ import com.backyard.playground.client.error.ClientStatusHandlers;
 import com.backyard.playground.client.interceptor.LocaleInterceptor;
 import com.backyard.playground.client.interceptor.LoggingInterceptor;
 import com.backyard.playground.client.interceptor.QueryParamInterceptor;
-import com.backyard.playground.data.locale.YahooSportsLocale;
+import com.backyard.playground.data.model.locale.YahooSportsLocaleDTO;
 import com.backyard.playground.exception.NotFoundException;
 
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
@@ -123,9 +123,9 @@ public class ClientConfig {
                 .defaultHeader("Accept", "application/json, text/plain, */*")
                 // Accept-Language is set dynamically per request by LocaleInterceptor,
                 // which reads the resolved locale from ClientLocaleContextHolder and
-                // maps it to a Yahoo-supported tag via YahooSportsLocale.
+                // maps it to a Yahoo-supported tag via YahooSportsLocaleDTO.
                 .requestInterceptor(
-                        new LocaleInterceptor(YahooSportsLocale::fromServiceLocale))
+                        new LocaleInterceptor(YahooSportsLocaleDTO::fromServiceLocale))
                 .requestInterceptor(LoggingInterceptor.noRedaction(clientName))
                 .defaultStatusHandler(
                         HttpStatusCode::isError, ClientStatusHandlers::handleError)

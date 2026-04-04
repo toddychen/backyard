@@ -1,4 +1,4 @@
-package com.backyard.playground.data.dory;
+package com.backyard.playground.data.persist.config;
 
 import jakarta.persistence.EntityManagerFactory;
 
@@ -19,29 +19,27 @@ import java.util.Map;
 import javax.sql.DataSource;
 
 /**
- * Datasource for the H2 dory database. Covers entities in {@code data.dory}
- * only.
+ * Datasource for H2. Covers all entities under
+ * {@code data.persist.h2}.
  */
 @Configuration
-@EnableJpaRepositories(basePackages = "com.backyard.playground.data.dory", entityManagerFactoryRef = "doryEntityManagerFactory", transactionManagerRef = "doryTransactionManager")
-public class DoryDataSourceConfig {
+@EnableJpaRepositories(basePackages = "com.backyard.playground.data.persist.h2", entityManagerFactoryRef = "h2EntityManagerFactory", transactionManagerRef = "h2TransactionManager")
+public class H2DataSourceConfig {
 
-    @Bean
+    @Bean("h2DataSource")
     @Primary
-    public DataSource doryDataSource(
-            @Value("${spring.datasource.url}") String url,
-            @Value("${spring.datasource.driver-class-name}") String driver) {
-        return DataSourceBuilder.create().url(url).driverClassName(driver).build();
+    public DataSource h2DataSource(@Value("${h2.url}") String url) {
+        return DataSourceBuilder.create().url(url).driverClassName("org.h2.Driver").build();
     }
 
-    @Bean
+    @Bean("h2EntityManagerFactory")
     @Primary
-    public LocalContainerEntityManagerFactoryBean doryEntityManagerFactory(
-            @Qualifier("doryDataSource") DataSource dataSource) {
+    public LocalContainerEntityManagerFactoryBean h2EntityManagerFactory(
+            @Qualifier("h2DataSource") DataSource dataSource) {
         LocalContainerEntityManagerFactoryBean em = new LocalContainerEntityManagerFactoryBean();
         em.setDataSource(dataSource);
-        em.setPackagesToScan("com.backyard.playground.data.dory");
-        em.setPersistenceUnitName("dory");
+        em.setPackagesToScan("com.backyard.playground.data.persist.h2");
+        em.setPersistenceUnitName("h2");
         em.setJpaVendorAdapter(new HibernateJpaVendorAdapter());
         em.setJpaPropertyMap(
                 Map.of(
@@ -52,10 +50,10 @@ public class DoryDataSourceConfig {
         return em;
     }
 
-    @Bean
+    @Bean("h2TransactionManager")
     @Primary
-    public PlatformTransactionManager doryTransactionManager(
-            @Qualifier("doryEntityManagerFactory") EntityManagerFactory emf) {
+    public PlatformTransactionManager h2TransactionManager(
+            @Qualifier("h2EntityManagerFactory") EntityManagerFactory emf) {
         return new JpaTransactionManager(emf);
     }
 }

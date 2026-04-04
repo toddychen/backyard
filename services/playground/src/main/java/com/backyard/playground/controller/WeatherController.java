@@ -1,6 +1,6 @@
 package com.backyard.playground.controller;
 
-import com.backyard.playground.data.weather.pollen.PollenReport;
+import com.backyard.playground.data.model.weather.pollen.PollenReportDTO;
 import com.backyard.playground.service.WeatherService;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -29,7 +29,7 @@ public class WeatherController extends BaseController {
 
     @Operation(summary = "Get pollen report for a city")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", content = @Content(schema = @Schema(implementation = PollenReport.class))),
+            @ApiResponse(responseCode = "200", content = @Content(schema = @Schema(implementation = PollenReportDTO.class))),
             @ApiResponse(responseCode = "400", content = @Content(schema = @Schema(implementation = GlobalExceptionHandler.ErrorResponse.class))),
             @ApiResponse(responseCode = "503", content = @Content(schema = @Schema(implementation = GlobalExceptionHandler.ErrorResponse.class)))
     })

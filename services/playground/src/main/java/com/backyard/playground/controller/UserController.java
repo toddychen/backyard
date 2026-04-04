@@ -1,7 +1,8 @@
 package com.backyard.playground.controller;
+import org.springframework.context.annotation.Profile;
 
-import com.backyard.playground.data.auth.User;
-import com.backyard.playground.data.auth.UserRepository;
+import com.backyard.playground.data.persist.mysql.auth.User;
+import com.backyard.playground.data.persist.mysql.auth.UserRepository;
 import com.backyard.playground.exception.NotFoundException;
 import com.backyard.playground.service.AuthService;
 
@@ -16,9 +17,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.UUID;
 
+@Profile("!home")
 @RestController
 @RequestMapping("/{version}/user")
-public class UserController {
+public class UserController extends BaseController {
 
     private final UserRepository userRepository;
     private final AuthService authService;
@@ -37,9 +39,7 @@ public class UserController {
     /** GET /api/v1/user/me */
     @GetMapping("/me")
     public ResponseEntity<UserResponse> me(@AuthenticationPrincipal UUID userId) {
-        User user = userRepository
-                .findById(userId)
-                .orElseThrow(() -> new NotFoundException("user not found"));
+        User user = userRepository.findById(userId).orElseThrow(() -> new NotFoundException("user not found"));
         return ResponseEntity.ok(new UserResponse(user.getId(), user.getEmail()));
     }
 
@@ -49,9 +49,8 @@ public class UserController {
             @RequestBody ChangePasswordRequest req,
             @RequestHeader("Authorization") String authHeader,
             @AuthenticationPrincipal UUID userId) {
-        String rawAccessToken = authHeader.startsWith("Bearer ") ? authHeader.substring(7) : "";
-        authService.changePassword(
-                userId, req.currentPassword(), req.newPassword(), rawAccessToken);
+        String accessToken = bearerToken(authHeader);
+        authService.changePassword(userId, req.currentPassword(), req.newPassword(), accessToken);
         return ResponseEntity.noContent().build();
     }
 }

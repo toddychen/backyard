@@ -1,8 +1,8 @@
 package com.backyard.playground.controller;
 
-import com.backyard.playground.data.dory.ReminderRequest;
-import com.backyard.playground.data.dory.ReminderResponse;
-import com.backyard.playground.data.dory.ReminderStatus;
+import com.backyard.playground.data.persist.h2.dory.ReminderStatus;
+import com.backyard.playground.data.model.dory.ReminderEntryInputDTO;
+import com.backyard.playground.data.model.dory.ReminderEntryDTO;
 import com.backyard.playground.service.DoryService;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -40,7 +40,7 @@ public class DoryController extends BaseController {
 
     @Operation(summary = "List reminders for an owner")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", content = @Content(array = @ArraySchema(schema = @Schema(implementation = ReminderResponse.class)))),
+            @ApiResponse(responseCode = "200", content = @Content(array = @ArraySchema(schema = @Schema(implementation = ReminderEntryDTO.class)))),
             @ApiResponse(responseCode = "400", content = @Content(schema = @Schema(implementation = GlobalExceptionHandler.ErrorResponse.class)))
     })
     @GetMapping(version = "1+")
@@ -52,31 +52,31 @@ public class DoryController extends BaseController {
 
     @Operation(summary = "Create a reminder")
     @ApiResponses({
-            @ApiResponse(responseCode = "201", content = @Content(schema = @Schema(implementation = ReminderResponse.class))),
+            @ApiResponse(responseCode = "201", content = @Content(schema = @Schema(implementation = ReminderEntryDTO.class))),
             @ApiResponse(responseCode = "400", content = @Content(schema = @Schema(implementation = GlobalExceptionHandler.ErrorResponse.class))),
             @ApiResponse(responseCode = "409", content = @Content(schema = @Schema(implementation = GlobalExceptionHandler.ErrorResponse.class)))
     })
     @PostMapping(version = "1+")
     public ResponseEntity<Object> createReminder(
-            @RequestParam String owner, @RequestBody ReminderRequest req) {
+            @RequestParam String owner, @RequestBody ReminderEntryInputDTO req) {
         return ResponseEntity.status(201).body(doryService.create(owner, req));
     }
 
     @Operation(summary = "Update a reminder")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", content = @Content(schema = @Schema(implementation = ReminderResponse.class))),
+            @ApiResponse(responseCode = "200", content = @Content(schema = @Schema(implementation = ReminderEntryDTO.class))),
             @ApiResponse(responseCode = "400", content = @Content(schema = @Schema(implementation = GlobalExceptionHandler.ErrorResponse.class))),
             @ApiResponse(responseCode = "404", content = @Content(schema = @Schema(implementation = GlobalExceptionHandler.ErrorResponse.class)))
     })
     @PutMapping(value = "/{id}", version = "1+")
     public ResponseEntity<Object> updateReminder(
-            @PathVariable UUID id, @RequestBody ReminderRequest req) {
+            @PathVariable UUID id, @RequestBody ReminderEntryInputDTO req) {
         return ok(doryService.update(id, req));
     }
 
     @Operation(summary = "Mark a reminder as done")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", content = @Content(schema = @Schema(implementation = ReminderResponse.class))),
+            @ApiResponse(responseCode = "200", content = @Content(schema = @Schema(implementation = ReminderEntryDTO.class))),
             @ApiResponse(responseCode = "404", content = @Content(schema = @Schema(implementation = GlobalExceptionHandler.ErrorResponse.class))),
             @ApiResponse(responseCode = "409", content = @Content(schema = @Schema(implementation = GlobalExceptionHandler.ErrorResponse.class)))
     })
@@ -87,7 +87,7 @@ public class DoryController extends BaseController {
 
     @Operation(summary = "Snooze a reminder")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", content = @Content(schema = @Schema(implementation = ReminderResponse.class))),
+            @ApiResponse(responseCode = "200", content = @Content(schema = @Schema(implementation = ReminderEntryDTO.class))),
             @ApiResponse(responseCode = "400", content = @Content(schema = @Schema(implementation = GlobalExceptionHandler.ErrorResponse.class))),
             @ApiResponse(responseCode = "404", content = @Content(schema = @Schema(implementation = GlobalExceptionHandler.ErrorResponse.class)))
     })

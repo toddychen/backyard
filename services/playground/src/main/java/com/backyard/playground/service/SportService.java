@@ -2,7 +2,7 @@ package com.backyard.playground.service;
 
 import com.backyard.playground.client.YahooSportsClient;
 import com.backyard.playground.data.api.yahoo.YahooGame;
-import com.backyard.playground.data.sport.game.Game;
+import com.backyard.playground.data.model.sport.GameDTO;
 import com.backyard.playground.tools.FanOut;
 
 import org.springframework.stereotype.Service;
@@ -23,7 +23,7 @@ public class SportService {
         this.fanOut = fanOut;
     }
 
-    public List<Game> getTeamGames(String teamId, int nextX, int lastX, boolean cached) {
+    public List<GameDTO> getTeamGames(String teamId, int nextX, int lastX, boolean cached) {
         List<YahooGame> games = yahooSportsClient.getTeamGames(teamId, nextX, lastX);
         if (games == null)
             return List.of();
@@ -36,7 +36,8 @@ public class SportService {
                 .toList();
     }
 
-    public List<Game> getTeamGamesParallel(String teamId, int nextX, int lastX, boolean cached) {
+    public List<GameDTO> getTeamGamesParallel(
+            String teamId, int nextX, int lastX, boolean cached) {
         List<YahooGame> games = yahooSportsClient.getTeamGames(teamId, nextX, lastX);
         if (games == null)
             return List.of();

@@ -2,7 +2,7 @@ package com.backyard.playground.client.interceptor;
 
 import com.backyard.playground.context.ClientLocaleContext;
 import com.backyard.playground.context.ClientLocaleContextHolder;
-import com.backyard.playground.data.locale.SupportedLocale;
+import com.backyard.playground.data.model.locale.SupportedLocaleDTO;
 
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpRequest;
@@ -15,7 +15,7 @@ import java.util.function.Function;
 
 /**
  * Adds an {@code Accept-Language} header to every outbound request, mapping the
- * current request's resolved {@link SupportedLocale} to the tag the upstream
+ * current request's resolved {@link SupportedLocaleDTO} to the tag the upstream
  * API accepts.
  *
  * <p>
@@ -33,21 +33,21 @@ import java.util.function.Function;
  *
  * <pre>
  *   // Yahoo Sports — maps to en-US / es-US
- *   new LocaleInterceptor(YahooSportsLocale::fromServiceLocale)
+ *   new LocaleInterceptor(YahooSportsLocaleDTO::fromServiceLocale)
  *
  *   // Client that accepts standard BCP 47 tags directly
- *   new LocaleInterceptor(SupportedLocale::getLanguageTag)
+ *   new LocaleInterceptor(SupportedLocaleDTO::getLanguageTag)
  * </pre>
  */
 public class LocaleInterceptor implements ClientHttpRequestInterceptor {
 
-    private final Function<SupportedLocale, String> mapper;
+    private final Function<SupportedLocaleDTO, String> mapper;
 
     /**
-     * @param mapper converts the resolved {@link SupportedLocale} to the BCP 47 tag
+     * @param mapper converts the resolved {@link SupportedLocaleDTO} to the BCP 47 tag
      *               the upstream API accepts
      */
-    public LocaleInterceptor(Function<SupportedLocale, String> mapper) {
+    public LocaleInterceptor(Function<SupportedLocaleDTO, String> mapper) {
         this.mapper = mapper;
     }
 

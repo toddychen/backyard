@@ -1,8 +1,9 @@
 package com.backyard.playground.service;
+import org.springframework.context.annotation.Profile;
 
 import com.backyard.playground.dao.AuthDao;
-import com.backyard.playground.data.auth.RefreshToken;
-import com.backyard.playground.data.auth.User;
+import com.backyard.playground.data.persist.mysql.auth.RefreshToken;
+import com.backyard.playground.data.persist.mysql.auth.User;
 import com.backyard.playground.exception.ConflictException;
 import com.backyard.playground.exception.UnauthorizedException;
 import com.backyard.playground.security.JwtAuthenticationFilter;
@@ -30,6 +31,7 @@ import java.util.UUID;
  * annotated with {@code @Transactional} — transaction boundaries are owned by
  * {@link AuthDao}.
  */
+@Profile("!home")
 @Service
 public class AuthService {
 
@@ -124,10 +126,8 @@ public class AuthService {
      * current access token. Throws {@link UnauthorizedException} if currentPassword
      * is wrong.
      */
-    public void changePassword(
-            UUID userId, String currentPassword, String newPassword, String rawAccessToken) {
-        User user = authDao.findById(userId)
-                .orElseThrow(() -> new UnauthorizedException("invalid credentials"));
+    public void changePassword(UUID userId, String currentPassword, String newPassword, String accessToken) {
+        User user = authDao.findById(userId).orElseThrow(() -> new UnauthorizedException("invalid credentials"));
 
         if (!passwordEncoder.matches(currentPassword, user.getPasswordHash())) {
             throw new UnauthorizedException("invalid credentials");
@@ -135,24 +135,24 @@ public class AuthService {
 
         authDao.updatePassword(userId, passwordEncoder.encode(newPassword));
         authDao.revokeAllRefreshTokensForUser(userId);
-        denylistAccessToken(rawAccessToken);
+        denylistAccessToken(accessToken);
     }
 
     /**
      * Revoke the refresh token and denylist the access token in Redis so it cannot
      * be reused before it naturally expires.
      */
-    public void logout(String rawRefreshToken, String rawAccessToken) {
-        denylistAccessToken(rawAccessToken);
+    public void logout(String rawRefreshToken, String accessToken) {
+        denylistAccessToken(accessToken);
         String hash = jwtTokenService.hashRefreshToken(rawRefreshToken);
         authDao.revokeRefreshToken(hash);
     }
 
     // --- helpers ---
 
-    private void denylistAccessToken(String rawToken) {
+    private void denylistAccessToken(String accessToken) {
         try {
-            Claims claims = jwtTokenService.parseAccessToken(rawToken);
+            Claims claims = jwtTokenService.parseAccessToken(accessToken);
             long remainingSecs = claims.getExpiration()
                     .toInstant()
                     .minusSeconds(Instant.now().getEpochSecond())

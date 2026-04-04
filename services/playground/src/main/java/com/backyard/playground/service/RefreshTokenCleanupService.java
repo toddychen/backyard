@@ -1,6 +1,7 @@
 package com.backyard.playground.service;
+import org.springframework.context.annotation.Profile;
 
-import com.backyard.playground.data.auth.RefreshTokenRepository;
+import com.backyard.playground.data.persist.mysql.auth.RefreshTokenRepository;
 
 import jakarta.transaction.Transactional;
 
@@ -16,6 +17,7 @@ import java.time.Instant;
  * expired — an expired token is rejected regardless, so its revoked history is
  * no longer useful.
  */
+@Profile("!home")
 @Service
 public class RefreshTokenCleanupService {
 

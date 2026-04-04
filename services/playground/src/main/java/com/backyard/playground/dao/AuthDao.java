@@ -1,9 +1,10 @@
 package com.backyard.playground.dao;
+import org.springframework.context.annotation.Profile;
 
-import com.backyard.playground.data.auth.RefreshToken;
-import com.backyard.playground.data.auth.RefreshTokenRepository;
-import com.backyard.playground.data.auth.User;
-import com.backyard.playground.data.auth.UserRepository;
+import com.backyard.playground.data.persist.mysql.auth.RefreshToken;
+import com.backyard.playground.data.persist.mysql.auth.RefreshTokenRepository;
+import com.backyard.playground.data.persist.mysql.auth.User;
+import com.backyard.playground.data.persist.mysql.auth.UserRepository;
 
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Repository;
@@ -24,6 +25,7 @@ import java.util.UUID;
  * logic and exceptions live in
  * {@link com.backyard.playground.service.AuthService}.
  */
+@Profile("!home")
 @Repository
 public class AuthDao {
 
@@ -80,15 +82,13 @@ public class AuthDao {
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void rotateRefreshToken(RefreshToken old, String newTokenHash, Instant expiresAt) {
         old.revoke();
-        refreshTokenRepository.save(
-                new RefreshToken(old.getUser(), newTokenHash, old.getFamilyId(), expiresAt));
+        refreshTokenRepository.save(new RefreshToken(old.getUser(), newTokenHash, old.getFamilyId(), expiresAt));
     }
 
     /** Issues a new refresh token for a user (used at login). */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void issueRefreshToken(User user, String tokenHash, Instant expiresAt) {
-        refreshTokenRepository.save(
-                new RefreshToken(user, tokenHash, UUID.randomUUID(), expiresAt));
+        refreshTokenRepository.save(new RefreshToken(user, tokenHash, UUID.randomUUID(), expiresAt));
     }
 
     /** Revokes a refresh token by hash if it exists. No-op if not found. */

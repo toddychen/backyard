@@ -1,4 +1,4 @@
-package com.backyard.playground.data.dory;
+package com.backyard.playground.data.persist.h2.dory;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -13,7 +13,7 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "reminder", indexes = @Index(columnList = "owner, status"))
-public class ReminderEntity {
+public class ReminderEntry {
 
     @Id
     private UUID id;

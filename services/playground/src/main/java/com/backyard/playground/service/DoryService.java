@@ -1,11 +1,11 @@
 package com.backyard.playground.service;
 
-import com.backyard.playground.data.dory.RecurrenceType;
-import com.backyard.playground.data.dory.ReminderEntity;
-import com.backyard.playground.data.dory.ReminderRepository;
-import com.backyard.playground.data.dory.ReminderRequest;
-import com.backyard.playground.data.dory.ReminderResponse;
-import com.backyard.playground.data.dory.ReminderStatus;
+import com.backyard.playground.data.persist.h2.dory.RecurrenceType;
+import com.backyard.playground.data.persist.h2.dory.ReminderEntry;
+import com.backyard.playground.data.persist.h2.dory.ReminderRepository;
+import com.backyard.playground.data.persist.h2.dory.ReminderStatus;
+import com.backyard.playground.data.model.dory.ReminderEntryInputDTO;
+import com.backyard.playground.data.model.dory.ReminderEntryDTO;
 import com.backyard.playground.exception.NotFoundException;
 
 import org.springframework.stereotype.Service;
@@ -26,15 +26,15 @@ public class DoryService {
     }
 
     @Transactional(readOnly = true)
-    public List<ReminderResponse> findAll(String owner, ReminderStatus status) {
+    public List<ReminderEntryDTO> findAll(String owner, ReminderStatus status) {
         return repository.findByOwnerAndStatus(owner, status).stream()
-                .map(ReminderResponse::from)
+                .map(ReminderEntryDTO::from)
                 .toList();
     }
 
     @Transactional
-    public ReminderResponse create(String owner, ReminderRequest req) {
-        var entity = new ReminderEntity();
+    public ReminderEntryDTO create(String owner, ReminderEntryInputDTO req) {
+        var entity = new ReminderEntry();
         entity.setId(UUID.randomUUID());
         entity.setOwner(owner);
         entity.setTitle(req.title());
@@ -43,11 +43,11 @@ public class DoryService {
         entity.setNextOccurrence(req.nextOccurrence());
         entity.setSnoozeUntil(req.snoozeUntil());
         entity.setDescription(req.description());
-        return ReminderResponse.from(repository.save(entity));
+        return ReminderEntryDTO.from(repository.save(entity));
     }
 
     @Transactional
-    public ReminderResponse update(UUID id, ReminderRequest req) {
+    public ReminderEntryDTO update(UUID id, ReminderEntryInputDTO req) {
         var entity = findById(id);
         entity.setTitle(req.title());
         entity.setType(req.type());
@@ -55,11 +55,11 @@ public class DoryService {
         entity.setNextOccurrence(req.nextOccurrence());
         entity.setSnoozeUntil(req.snoozeUntil());
         entity.setDescription(req.description());
-        return ReminderResponse.from(repository.save(entity));
+        return ReminderEntryDTO.from(repository.save(entity));
     }
 
     @Transactional
-    public ReminderResponse markDone(UUID id) {
+    public ReminderEntryDTO markDone(UUID id) {
         var entity = findById(id);
         if ("recurring".equals(entity.getType())) {
             entity.setNextOccurrence(
@@ -69,17 +69,17 @@ public class DoryService {
             entity.setStatus(ReminderStatus.DONE);
             entity.setCompletedAt(Instant.now());
         }
-        return ReminderResponse.from(repository.save(entity));
+        return ReminderEntryDTO.from(repository.save(entity));
     }
 
     @Transactional
-    public ReminderResponse snooze(UUID id, int minutes) {
+    public ReminderEntryDTO snooze(UUID id, int minutes) {
         var entity = findById(id);
         var base = entity.getSnoozeUntil() != null
                 ? entity.getSnoozeUntil()
                 : entity.getNextOccurrence();
         entity.setSnoozeUntil(base.plus(minutes, ChronoUnit.MINUTES));
-        return ReminderResponse.from(repository.save(entity));
+        return ReminderEntryDTO.from(repository.save(entity));
     }
 
     @Transactional
@@ -90,7 +90,7 @@ public class DoryService {
 
     // -- helpers --
 
-    private ReminderEntity findById(UUID id) {
+    private ReminderEntry findById(UUID id) {
         return repository
                 .findById(id)
                 .orElseThrow(() -> new NotFoundException("Reminder not found: " + id));

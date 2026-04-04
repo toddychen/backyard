@@ -1,11 +1,11 @@
-package com.backyard.playground.data.sport.game;
+package com.backyard.playground.data.model.sport;
 
 import com.backyard.playground.cache.Expirable;
 import com.backyard.playground.data.api.yahoo.YahooGame;
 
 import java.time.Duration;
 
-public record Game(
+public record GameDTO(
         String gameId,
         String homeTeamFullName,
         String awayTeamFullName,
@@ -22,8 +22,8 @@ public record Game(
         return "STARTED".equals(gameStatus) ? Duration.ofSeconds(10) : Duration.ofSeconds(60);
     }
 
-    public static Game from(YahooGame g) {
-        return new Game(
+    public static GameDTO from(YahooGame g) {
+        return new GameDTO(
                 g.gameId(),
                 g.homeTeamFullName(),
                 g.awayTeamFullName(),

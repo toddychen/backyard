@@ -25,7 +25,9 @@ reminders CRUD.
 - Constructor injection, `private final` fields
 - Custom exceptions in `exception/` extend `BaseException` — bubble up
   to `GlobalExceptionHandler`
-- DTOs are Java records in `data/{domain}/` packages
+- Internal data model classes live in `data/model/` and always
+  use the `DTO` suffix (e.g. `ReminderEntryDTO`, `GameDTO`) to
+  avoid name clashes with JPA entity classes in `data/persist/`
 
 
 **Java Code Style** (matches `.vscode/eclipse-java-formatter.xml`):

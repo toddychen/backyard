@@ -1,4 +1,5 @@
 package com.backyard.playground.controller;
+import org.springframework.context.annotation.Profile;
 
 import com.backyard.playground.service.AuthService;
 import com.backyard.playground.service.AuthService.TokenPair;
@@ -13,9 +14,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.UUID;
 
+@Profile("!home")
 @RestController
 @RequestMapping("/{version}/auth")
-public class AuthController {
+public class AuthController extends BaseController {
 
     private final AuthService authService;
 
@@ -62,8 +64,8 @@ public class AuthController {
             @RequestBody RefreshRequest req,
             @RequestHeader("Authorization") String authHeader,
             @AuthenticationPrincipal UUID userId) {
-        String rawAccessToken = authHeader.startsWith("Bearer ") ? authHeader.substring(7) : "";
-        authService.logout(req.refreshToken(), rawAccessToken);
+        String accessToken = bearerToken(authHeader);
+        authService.logout(req.refreshToken(), accessToken);
         return ResponseEntity.noContent().build();
     }
 }

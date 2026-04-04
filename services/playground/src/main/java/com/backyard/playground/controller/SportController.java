@@ -1,6 +1,6 @@
 package com.backyard.playground.controller;
 
-import com.backyard.playground.data.sport.game.Game;
+import com.backyard.playground.data.model.sport.GameDTO;
 import com.backyard.playground.service.GameService;
 import com.backyard.playground.service.SportService;
 
@@ -34,7 +34,7 @@ public class SportController extends BaseController {
 
     @Operation(summary = "Get upcoming and past games for a team")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", content = @Content(array = @ArraySchema(schema = @Schema(implementation = Game.class)))),
+            @ApiResponse(responseCode = "200", content = @Content(array = @ArraySchema(schema = @Schema(implementation = GameDTO.class)))),
             @ApiResponse(responseCode = "503", content = @Content(schema = @Schema(implementation = GlobalExceptionHandler.ErrorResponse.class)))
     })
     @GetMapping(value = "/team/{teamId}/games", version = "1+")
@@ -51,7 +51,7 @@ public class SportController extends BaseController {
 
     @Operation(summary = "Get details for a single game")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Game details, or null if the game ID is unknown", content = @Content(schema = @Schema(implementation = Game.class))),
+            @ApiResponse(responseCode = "200", description = "Game details, or null if the game ID is unknown", content = @Content(schema = @Schema(implementation = GameDTO.class))),
             @ApiResponse(responseCode = "503", content = @Content(schema = @Schema(implementation = GlobalExceptionHandler.ErrorResponse.class)))
     })
     @GetMapping(value = "/game/{gameId}/details", version = "1+")

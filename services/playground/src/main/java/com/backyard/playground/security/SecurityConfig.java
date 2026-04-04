@@ -1,10 +1,9 @@
 package com.backyard.playground.security;
 
-import com.backyard.playground.controller.GlobalExceptionHandler.ErrorResponse;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -43,17 +42,15 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
  * pages with JSON bodies that match the {@code ErrorResponse} format used by
  * {@code GlobalExceptionHandler}.
  */
+@Profile("!home")
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
-    private final ObjectMapper objectMapper;
 
-    public SecurityConfig(
-            JwtAuthenticationFilter jwtAuthenticationFilter, ObjectMapper objectMapper) {
+    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
-        this.objectMapper = objectMapper;
     }
 
     @Bean
@@ -94,10 +91,9 @@ public class SecurityConfig {
                                             res.setStatus(401);
                                             res.setContentType(
                                                     MediaType.APPLICATION_JSON_VALUE);
-                                            objectMapper.writeValue(
-                                                    res.getWriter(),
-                                                    new ErrorResponse(
-                                                            401, "unauthorized", null));
+                                            res.getWriter().write(
+                                                    "{\"status\":401,\"message\":\"unauthorized\","
+                                                            + "\"errorId\":null}");
                                         })
                                 // 403 — authenticated but not authorized
                                 .accessDeniedHandler(
@@ -105,10 +101,9 @@ public class SecurityConfig {
                                             res.setStatus(403);
                                             res.setContentType(
                                                     MediaType.APPLICATION_JSON_VALUE);
-                                            objectMapper.writeValue(
-                                                    res.getWriter(),
-                                                    new ErrorResponse(
-                                                            403, "forbidden", null));
+                                            res.getWriter().write(
+                                                    "{\"status\":403,\"message\":\"forbidden\","
+                                                            + "\"errorId\":null}");
                                         }));
 
         return http.build();

@@ -1,4 +1,4 @@
-package com.backyard.playground.data.locale;
+package com.backyard.playground.data.model.locale;
 
 import java.util.Arrays;
 import java.util.Locale;
@@ -26,7 +26,7 @@ import java.util.stream.Collectors;
  * {@link #fromLanguageTag} always returns a value — unsupported or unknown tags
  * fall back to {@link #EN}.
  */
-public enum SupportedLocale {
+public enum SupportedLocaleDTO {
     EN("en"),
     FR("fr"),
     ES("es"),
@@ -39,10 +39,10 @@ public enum SupportedLocale {
     private final String languageTag;
 
     // Keyed by full BCP 47 tag (lowercase) for exact lookup
-    private static final Map<String, SupportedLocale> TAG_MAP = Arrays.stream(values())
+    private static final Map<String, SupportedLocaleDTO> TAG_MAP = Arrays.stream(values())
             .collect(Collectors.toMap(l -> l.languageTag.toLowerCase(), l -> l));
 
-    SupportedLocale(String languageTag) {
+    SupportedLocaleDTO(String languageTag) {
         this.languageTag = languageTag;
     }
 
@@ -56,7 +56,7 @@ public enum SupportedLocale {
     }
 
     /**
-     * Resolves a BCP 47 tag to a {@link SupportedLocale}.
+     * Resolves a BCP 47 tag to a {@link SupportedLocaleDTO}.
      *
      * <p>
      * Lookup is exact (case-insensitive). If the tag is not in the supported set,
@@ -67,11 +67,11 @@ public enum SupportedLocale {
      * just the language subtag ({@code "zh"}), so that Traditional and Simplified
      * Chinese resolve to distinct entries.
      */
-    public static SupportedLocale fromLanguageTag(String tag) {
+    public static SupportedLocaleDTO fromLanguageTag(String tag) {
         if (tag == null)
             return EN;
         // Step 1: exact match (e.g. "zh-TW" → ZH_TW)
-        SupportedLocale exact = TAG_MAP.get(tag.toLowerCase());
+        SupportedLocaleDTO exact = TAG_MAP.get(tag.toLowerCase());
         if (exact != null)
             return exact;
         // Step 2: language-prefix fallback (e.g. "en-US" → "en" → EN).

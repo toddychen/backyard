@@ -2,7 +2,7 @@ package com.backyard.playground.controller;
 
 import com.backyard.playground.context.ClientLocaleContext;
 import com.backyard.playground.context.ClientLocaleContextHolder;
-import com.backyard.playground.data.locale.YahooSportsLocale;
+import com.backyard.playground.data.model.locale.YahooSportsLocaleDTO;
 import com.backyard.playground.service.TraceService;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -51,7 +51,8 @@ public class TestController extends BaseController {
         result.put("raw", ctx.raw());
         result.put("supportedLocale", ctx.supportedLocale().getLanguageTag());
         result.put("region", ctx.region());
-        result.put("yahooSportsLocale", YahooSportsLocale.fromServiceLocale(ctx.supportedLocale()));
+        result.put("yahooSportsLocale",
+                YahooSportsLocaleDTO.fromServiceLocale(ctx.supportedLocale()));
         return ok(result);
     }
 }

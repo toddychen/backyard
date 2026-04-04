@@ -83,8 +83,9 @@ public class QueryParamInterceptor implements ClientHttpRequestInterceptor {
             Environment environment,
             String localFilePath,
             String gcpProjectId) {
-        boolean dev = Arrays.asList(environment.getActiveProfiles()).contains("dev");
-        String apiKeyValue = dev
+        boolean local = Arrays.stream(environment.getActiveProfiles())
+                .anyMatch(p -> p.equals("dev") || p.equals("home"));
+        String apiKeyValue = local
                 ? loadApiKeyFromFile(secretName, localFilePath)
                 : loadApiKeyFromSecretManager(secretName, gcpProjectId);
         HashMap<String, String> merged = new HashMap<>(params);

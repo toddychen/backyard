@@ -8,6 +8,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
+import org.springframework.context.annotation.Profile;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -24,6 +25,7 @@ import java.util.UUID;
  * token are not rejected here — Spring Security's authorization rules handle
  * that for protected endpoints.
  */
+@Profile("!home")
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 

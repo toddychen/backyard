@@ -4,9 +4,9 @@ import com.backyard.playground.cache.CacheConfig;
 import com.backyard.playground.client.AmbeePollenClient;
 import com.backyard.playground.data.api.ambee.AmbeePollenResponse;
 import com.backyard.playground.data.api.ambee.PollenData;
-import com.backyard.playground.data.geo.SupportedCity;
-import com.backyard.playground.data.weather.pollen.PollenCategory;
-import com.backyard.playground.data.weather.pollen.PollenReport;
+import com.backyard.playground.data.model.geo.SupportedCityDTO;
+import com.backyard.playground.data.model.weather.pollen.PollenCategoryDTO;
+import com.backyard.playground.data.model.weather.pollen.PollenReportDTO;
 import com.backyard.playground.exception.NotFoundException;
 import com.backyard.playground.exception.ServiceUnavailableException;
 
@@ -26,8 +26,8 @@ public class WeatherService {
     }
 
     @Cacheable(value = CacheConfig.CACHE_POLLEN, key = "#city")
-    public PollenReport getPollenByCity(String city) {
-        var supported = SupportedCity.fromSlug(city);
+    public PollenReportDTO getPollenByCity(String city) {
+        var supported = SupportedCityDTO.fromSlug(city);
         if (supported.isEmpty()) {
             throw new NotFoundException("city not supported: " + city);
         }
@@ -37,20 +37,20 @@ public class WeatherService {
         return toPollenReport(response);
     }
 
-    private PollenReport toPollenReport(AmbeePollenResponse response) {
+    private PollenReportDTO toPollenReport(AmbeePollenResponse response) {
         if (response.data() == null || response.data().isEmpty()) {
             throw new ServiceUnavailableException("no pollen data returned from upstream");
         }
         PollenData d = response.data().get(0);
-        return new PollenReport(
+        return new PollenReportDTO(
                 response.lat(),
                 response.lng(),
                 d.updatedAt(),
-                new PollenCategory(
+                new PollenCategoryDTO(
                         d.count().grassPollen(), d.risk().grassPollen(), d.species().grass()),
-                new PollenCategory(
+                new PollenCategoryDTO(
                         d.count().treePollen(), d.risk().treePollen(), d.species().tree()),
-                new PollenCategory(
+                new PollenCategoryDTO(
                         d.count().weedPollen(), d.risk().weedPollen(), d.species().weed()));
     }
 }
