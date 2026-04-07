@@ -1,7 +1,7 @@
 package com.backyard.playground.service;
 
 import com.backyard.playground.cache.CacheConfig;
-import com.backyard.playground.client.AmbeePollenClient;
+import com.backyard.playground.client.rest.AmbeePollenClient;
 import com.backyard.playground.data.api.ambee.AmbeePollenResponse;
 import com.backyard.playground.data.api.ambee.PollenData;
 import com.backyard.playground.data.model.geo.SupportedCityDTO;

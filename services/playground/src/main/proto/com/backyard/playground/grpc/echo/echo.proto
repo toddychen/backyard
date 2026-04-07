@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+package com.backyard.playground.grpc.echo;
+
+option java_package = "com.backyard.playground.grpc.echo";
+option java_outer_classname = "EchoProto";
+option java_multiple_files = true;
+
+// Echo service — demonstrates unary and server-streaming gRPC calls.
+service Echo {
+  // Sends a single message and receives a single reply.
+  rpc EchoUnary(EchoRequest) returns (EchoResponse);
+
+  // Sends a single message and receives a stream of replies.
+  rpc EchoServerStream(EchoRequest) returns (stream EchoResponse);
+}
+
+message EchoRequest {
+  string message = 1;
+  // Number of replies to stream back (used by EchoServerStream).
+  int32 count = 2;
+}
+
+message EchoResponse {
+  string message = 1;
+  // Zero-based index of this reply within a stream.
+  int32 index = 2;
+}

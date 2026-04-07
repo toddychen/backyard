@@ -6,8 +6,8 @@ import com.backyard.playground.data.persist.mysql.auth.RefreshToken;
 import com.backyard.playground.data.persist.mysql.auth.User;
 import com.backyard.playground.exception.ConflictException;
 import com.backyard.playground.exception.UnauthorizedException;
-import com.backyard.playground.security.JwtAuthenticationFilter;
-import com.backyard.playground.security.JwtTokenService;
+import com.backyard.playground.server.rest.security.JwtAuthenticationFilter;
+import com.backyard.playground.jwt.JwtTokenService;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;

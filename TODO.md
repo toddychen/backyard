@@ -334,6 +334,62 @@ the client also needs to send messages mid-stream.
 
 ---
 
+## Testing Strategy
+
+### REST Service Tests
+
+**Unit tests**
+- Service layer: mock clients, assert business logic (e.g. `DoryService`, `SportService`, `GameService`)
+- Exception mapping: verify typed exceptions produce correct HTTP status codes via `GlobalExceptionHandler`
+- Cache logic: verify `@Cacheable` hits/misses, dynamic TTL on `Expirable` types
+- JWT: token creation, parsing, expiry, denylist check in `JwtTokenService`
+
+**Integration tests (`@SpringBootTest`)**
+- Controller layer: `MockMvc` tests for each endpoint — request/response shape, status codes, auth
+- Auth flow: login → get token → call protected endpoint → logout → token denylist
+- Dory CRUD: full lifecycle via HTTP against H2 in-memory DB
+- Locale pipeline: `Accept-Language` header → resolved locale in response headers + `Content-Language`
+
+**Client tests**
+- Resilience4j: verify circuit breaker opens after threshold, retry fires on transient errors
+- Error translation: HTTP 4xx/5xx from upstream → correct typed exception
+
+**Contract / component tests**
+- Spin up a WireMock stub for each external API (Ambee, Yahoo Sports, Google Pollen)
+- Assert correct request headers (auth, locale, User-Agent) and response mapping
+
+---
+
+### gRPC Service Tests
+
+**Unit tests**
+- Service impl: call `GrpcBinDemoService` methods directly — assert `StreamObserver` receives correct
+  messages and `onCompleted` is called
+- Exception mapper: verify each `BaseException` subclass maps to the correct `Status` code
+
+**Integration tests (`@SpringBootTest` + in-process channel)**
+- Start the full Spring context with an in-process gRPC server (no real port)
+- Call methods via a `BlockingStub` wired to the in-process channel
+- Unary: assert reply message and index
+- Server-streaming: collect all replies into a list, assert count and content
+- Error cases: trigger exceptions in the service impl, assert `StatusRuntimeException` with correct code
+
+**End-to-end tests (local)**
+- Start the service with `dev` profile
+- Call `grpcurl -plaintext localhost:2090 ...` and assert responses
+- Test reflection: `grpcurl -plaintext localhost:2090 list` returns expected services
+
+---
+
+### Cross-cutting / Infrastructure Tests
+
+- **Health probes**: `GET /actuator/health/liveness` and `/readiness` return 200 with correct status
+- **Metrics**: `GET /actuator/prometheus` contains expected metric names after a request
+- **Tracing**: verify `traceId` and `spanId` appear in log output for both REST and gRPC calls
+- **Access log**: verify MDC fields (`http.method`, `http.status`, `grpc.method`, `grpc.status`) appear in logs
+
+---
+
 ## gRPC Support
 
 Add gRPC as a supported protocol for both inbound server endpoints and outbound
@@ -363,6 +419,37 @@ client calls, alongside the existing REST/Feign layer.
 - Learn both sides: serving gRPC traffic and consuming gRPC upstream APIs
 - Establish patterns for proto contract ownership and code generation in the
   build pipeline
+
+---
+
+## Role-Based Internal Auth System
+
+Explore and implement a service-to-service authentication and authorization system,
+similar to Yahoo's Athenz — where services have identities and roles, and access to
+internal APIs is gated by policy rather than shared secrets.
+
+**Why this matters:**
+- JWT-based user auth (current) handles human → service auth, but not service → service
+- Internal gRPC endpoints need a way to verify the caller is a trusted service
+- Role-based access allows fine-grained control (e.g. only `sport-client` can call `Sport/GetTeamGames`)
+
+**Industrial options to explore:**
+- **Athenz** (Yahoo open source) — role-based access control for services, certificate-based identity,
+  supports both mTLS and token-based auth. Full RBAC policy engine.
+- **SPIFFE/SPIRE** — CNCF standard for workload identity via X.509 SVIDs. Integrates with
+  Istio, Envoy. Identity is bound to the workload (pod/service), not a secret.
+- **Istio mTLS** — if running a service mesh, mTLS is automatic per-pod. Peer authentication
+  policy controls which services can talk to which. Zero code changes needed.
+- **OPA (Open Policy Agent)** — policy-as-code engine. Decouples policy from service code.
+  Can authorize gRPC calls based on metadata, method, caller identity.
+- **JWT service tokens** — simpler approach: issue short-lived JWTs to services (not users),
+  validated by the same `JwtTokenService`. No new infrastructure, but no revocation.
+
+**What needs to be done:**
+- Evaluate options against complexity, infrastructure cost, and current GCP/k8s setup
+- Prototype the chosen approach on the gRPC Sport endpoint as a pilot
+- Define how service identity is established (cert, token, mesh identity)
+- Implement a `GrpcAuthInterceptor` that enforces the policy
 
 ---
 

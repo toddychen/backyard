@@ -8,5 +8,6 @@
         "editor.defaultFormatter": "redhat.java"
     },
     "java.format.settings.url": "${workspaceFolder}/.vscode/eclipse-java-formatter.xml",
-    "java.format.settings.profile": "Backyard"
+    "java.format.settings.profile": "Backyard",
+    "java.configuration.updateBuildConfiguration": "interactive"
 }

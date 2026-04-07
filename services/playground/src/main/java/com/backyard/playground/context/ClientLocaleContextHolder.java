@@ -32,7 +32,7 @@ package com.backyard.playground.context;
  * <h3>Lifecycle</h3>
  *
  * <p>
- * {@link com.backyard.playground.filter.LocaleFilter} calls {@link #set} before
+ * {@link com.backyard.playground.server.rest.filter.LocaleFilter} calls {@link #set} before
  * the filter chain and {@link #clear} in the {@code finally} block, ensuring no
  * context leaks between requests.
  */

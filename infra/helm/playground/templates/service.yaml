@@ -18,4 +18,12 @@ spec:
       nodePort: {{ .Values.service.nodePort }}
       {{- end }}
       protocol: TCP
+    - name: grpc
+      port: 9090
+      targetPort: 9090
+      {{- if .Values.service.grpcNodePort }}
+      nodePort: {{ .Values.service.grpcNodePort }}
+      {{- end }}
+      protocol: TCP
+      appProtocol: grpc
 

@@ -1,7 +1,7 @@
 package com.backyard.playground.service;
 
 import com.backyard.playground.cache.CacheConfig;
-import com.backyard.playground.client.YahooSportsClient;
+import com.backyard.playground.client.rest.YahooSportsClient;
 import com.backyard.playground.data.api.yahoo.YahooGame;
 import com.backyard.playground.data.model.sport.GameDTO;
 

@@ -1,0 +1,42 @@
+syntax = "proto3";
+
+package com.backyard.playground.grpc.sport;
+
+option java_package = "com.backyard.playground.grpc.sport";
+option java_outer_classname = "SportProto";
+option java_multiple_files = true;
+
+// Sport service — exposes team games and game details via gRPC.
+service Sport {
+  // Returns upcoming and past games for a team.
+  rpc GetTeamGames(GetTeamGamesRequest) returns (GetTeamGamesResponse);
+
+  // Returns details for a single game. Returns NOT_FOUND if game ID is unknown.
+  rpc GetGameDetails(GetGameDetailsRequest) returns (GameResponse);
+}
+
+message GetTeamGamesRequest {
+  string team_id = 1;
+  int32 next_x = 2;
+  int32 last_x = 3;
+}
+
+message GetTeamGamesResponse {
+  repeated GameResponse games = 1;
+}
+
+message GetGameDetailsRequest {
+  string game_id = 1;
+}
+
+message GameResponse {
+  string game_id = 1;
+  string home_team_full_name = 2;
+  string away_team_full_name = 3;
+  string home_team_abbrev = 4;
+  string away_team_abbrev = 5;
+  string start_time = 6;
+  string game_status = 7;
+  int32 home_score = 8;
+  int32 away_score = 9;
+}

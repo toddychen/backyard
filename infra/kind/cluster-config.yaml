@@ -4,6 +4,14 @@ name: backyard-kind
 nodes:
   - role: control-plane
     extraPortMappings:
+      # playground REST (NodePort)
+      - containerPort: 32080
+        hostPort: 32080
+        protocol: TCP
+      # playground gRPC (NodePort)
+      - containerPort: 32090
+        hostPort: 32090
+        protocol: TCP
       # playground service (NodePort)
       - containerPort: 30001
         hostPort: 30001

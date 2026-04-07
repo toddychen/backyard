@@ -1,6 +1,6 @@
 package com.backyard.playground.service;
 
-import com.backyard.playground.client.YahooSportsClient;
+import com.backyard.playground.client.rest.YahooSportsClient;
 import com.backyard.playground.data.api.yahoo.YahooGame;
 import com.backyard.playground.data.model.sport.GameDTO;
 import com.backyard.playground.tools.FanOut;
@@ -28,16 +28,14 @@ public class SportService {
         if (games == null)
             return List.of();
         return games.stream()
-                .map(
-                        g -> cached
-                                ? gameService.getGameDetails(g.gameId())
-                                : gameService.fetchGameDetails(g.gameId()))
+                .map(g -> cached
+                        ? gameService.getGameDetails(g.gameId())
+                        : gameService.fetchGameDetails(g.gameId()))
                 .filter(Objects::nonNull)
                 .toList();
     }
 
-    public List<GameDTO> getTeamGamesParallel(
-            String teamId, int nextX, int lastX, boolean cached) {
+    public List<GameDTO> getTeamGamesParallel(String teamId, int nextX, int lastX, boolean cached) {
         List<YahooGame> games = yahooSportsClient.getTeamGames(teamId, nextX, lastX);
         if (games == null)
             return List.of();
