@@ -2,6 +2,8 @@ package com.backyard.playground.data.persist.config;
 
 import jakarta.persistence.EntityManagerFactory;
 
+import org.springframework.context.annotation.Profile;
+
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.jdbc.DataSourceBuilder;
@@ -22,6 +24,7 @@ import javax.sql.DataSource;
  * Datasource for H2. Covers all entities under
  * {@code data.persist.h2}.
  */
+@Profile("home")
 @Configuration
 @EnableJpaRepositories(basePackages = "com.backyard.playground.data.persist.h2", entityManagerFactoryRef = "h2EntityManagerFactory", transactionManagerRef = "h2TransactionManager")
 public class H2DataSourceConfig {

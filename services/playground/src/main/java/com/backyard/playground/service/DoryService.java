@@ -1,5 +1,7 @@
 package com.backyard.playground.service;
 
+import org.springframework.context.annotation.Profile;
+
 import com.backyard.playground.data.persist.h2.dory.RecurrenceType;
 import com.backyard.playground.data.persist.h2.dory.ReminderEntry;
 import com.backyard.playground.data.persist.h2.dory.ReminderRepository;
@@ -16,6 +18,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.UUID;
 
+@Profile("home")
 @Service
 public class DoryService {
 
