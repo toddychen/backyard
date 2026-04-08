@@ -203,6 +203,13 @@
             <artifactId>grpc-opentelemetry</artifactId>
             <version>${grpc.version}</version>
         </dependency>
+
+        <!-- gRPC stubs for Natural Language API. Used as an example of a gRPC client-->
+        <dependency>
+            <groupId>com.google.api.grpc</groupId>
+            <artifactId>grpc-google-cloud-language-v2</artifactId>
+            <version>2.89.0</version>
+        </dependency>
     </dependencies>
 
     <build>

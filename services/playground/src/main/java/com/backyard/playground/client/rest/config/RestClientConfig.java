@@ -29,6 +29,7 @@ import org.springframework.web.service.invoker.HttpServiceProxyFactory;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Proxy;
 import java.net.http.HttpClient;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Set;
 import java.util.function.Supplier;
@@ -68,8 +69,13 @@ public class RestClientConfig {
     // if the server agrees, falling back to HTTP/1.1 automatically.
     @Bean
     public JdkClientHttpRequestFactory httpRequestFactory() {
-        var jdkClient = HttpClient.newBuilder().version(HttpClient.Version.HTTP_2).build();
-        return new JdkClientHttpRequestFactory(jdkClient);
+        var jdkClient = HttpClient.newBuilder()
+                .version(HttpClient.Version.HTTP_2)
+                .connectTimeout(Duration.ofSeconds(5))
+                .build();
+        var factory = new JdkClientHttpRequestFactory(jdkClient);
+        factory.setReadTimeout(Duration.ofSeconds(10));
+        return factory;
     }
 
     @Bean
@@ -187,36 +193,34 @@ public class RestClientConfig {
     }
 
     /**
-     * Wraps {@code client} in a JDK dynamic proxy that applies a named
-     * Resilience4j circuit breaker and retry to every method call on
-     * {@code iface}.
+     * Wraps {@code client} in a JDK dynamic proxy that applies a named Resilience4j
+     * circuit breaker and retry to every method call on {@code iface}.
      *
      * <h3>Why a dynamic proxy?</h3>
      *
      * <p>
      * The clients are Spring {@code @HttpExchange} interfaces — there is no
-     * concrete class to subclass or annotate. A JDK dynamic proxy lets us
-     * intercept every method call at runtime without writing per-method
-     * delegation code. Adding a method to the client interface automatically
-     * gets circuit breaker + retry protection with no changes here.
+     * concrete class to subclass or annotate. A JDK dynamic proxy lets us intercept
+     * every method call at runtime without writing per-method delegation code.
+     * Adding a method to the client interface automatically gets circuit breaker +
+     * retry protection with no changes here.
      *
      * <h3>Decorator order</h3>
      *
      * <p>
-     * Retry is applied first (innermost), then circuit breaker (outermost).
-     * This means the breaker sees one outcome per retry group — individual
-     * retry attempts are invisible to it. Only when all retries are exhausted
-     * does the breaker record a failure. This prevents transient blips from
-     * tripping the breaker prematurely.
+     * Retry is applied first (innermost), then circuit breaker (outermost). This
+     * means the breaker sees one outcome per retry group — individual retry
+     * attempts are invisible to it. Only when all retries are exhausted does the
+     * breaker record a failure. This prevents transient blips from tripping the
+     * breaker prematurely.
      *
      * <h3>Exception unwrapping</h3>
      *
      * <p>
-     * {@link java.lang.reflect.Method#invoke} wraps any exception thrown by
-     * the target in an {@link InvocationTargetException}. We unwrap it before
-     * handing to Resilience4j so that the retry and circuit breaker see the
-     * real exception (e.g.
-     * {@link org.springframework.web.client.RestClientException}) and can
+     * {@link java.lang.reflect.Method#invoke} wraps any exception thrown by the
+     * target in an {@link InvocationTargetException}. We unwrap it before handing
+     * to Resilience4j so that the retry and circuit breaker see the real exception
+     * (e.g. {@link org.springframework.web.client.RestClientException}) and can
      * apply their exception predicate rules correctly.
      *
      * <h3>Naming</h3>
@@ -224,15 +228,15 @@ public class RestClientConfig {
      * <p>
      * {@code name} is the base client name (e.g. {@code "yahoosports"}). The
      * circuit breaker instance is keyed as {@code "<name>-<methodName>"} (e.g.
-     * {@code "yahoosports-getTeamGames"}) so each endpoint has independent
-     * breaker state — one endpoint failing does not trip the breaker for other
-     * endpoints on the same client.
+     * {@code "yahoosports-getTeamGames"}) so each endpoint has independent breaker
+     * state — one endpoint failing does not trip the breaker for other endpoints on
+     * the same client.
      *
      * <p>
-     * The retry instance uses just {@code name}, shared across all methods on
-     * the client. Retry state is per-call (not shared), so this only affects
-     * retry configuration — all methods on a client share the same max-attempts
-     * and backoff settings.
+     * The retry instance uses just {@code name}, shared across all methods on the
+     * client. Retry state is per-call (not shared), so this only affects retry
+     * configuration — all methods on a client share the same max-attempts and
+     * backoff settings.
      *
      * <h3>Configuration</h3>
      *
@@ -299,16 +303,16 @@ public class RestClientConfig {
     }
 
     /**
-     * Wraps {@code client} in a JDK dynamic proxy that intercepts every method
-     * call and routes exceptions through {@code onError}.
+     * Wraps {@code client} in a JDK dynamic proxy that intercepts every method call
+     * and routes exceptions through {@code onError}.
      *
      * <p>
      * Use this to translate client-specific error conditions into return values
      * before resilience logic sees them — for example, converting a 404
-     * {@link NotFoundException} to {@code null} so callers can filter instead
-     * of catching. Because this proxy sits inside {@link #wrapWithResilience},
-     * the translated outcome (null or a value) is seen by Resilience4j as a
-     * success and will not trigger retries or circuit breaker failure recording.
+     * {@link NotFoundException} to {@code null} so callers can filter instead of
+     * catching. Because this proxy sits inside {@link #wrapWithResilience}, the
+     * translated outcome (null or a value) is seen by Resilience4j as a success and
+     * will not trigger retries or circuit breaker failure recording.
      *
      * <p>
      * Typical call order:
