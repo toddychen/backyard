@@ -32,7 +32,7 @@ public class GrpcClientLoggingInterceptor implements ClientInterceptor {
     public <ReqT, RespT> ClientCall<ReqT, RespT> interceptCall(MethodDescriptor<ReqT, RespT> method,
             CallOptions callOptions, Channel next) {
         long start = System.currentTimeMillis();
-        String methodName = method.getBareMethodName();
+        String methodName = method.getFullMethodName();
         return new SimpleForwardingClientCall<>(next.newCall(method, callOptions)) {
             @Override
             public void start(Listener<RespT> responseListener, Metadata headers) {

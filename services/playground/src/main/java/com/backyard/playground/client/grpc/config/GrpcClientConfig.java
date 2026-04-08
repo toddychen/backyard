@@ -1,15 +1,17 @@
 package com.backyard.playground.client.grpc.config;
 
+import com.backyard.playground.client.grpc.interceptor.GrpcClientDeadlineInterceptor;
 import com.backyard.playground.client.grpc.interceptor.GrpcClientLoggingInterceptor;
 import com.backyard.playground.client.grpc.GoogleLanguageClient;
 import com.backyard.playground.client.grpc.GoogleLanguageClientImpl;
+import com.backyard.playground.client.grpc.GrpcbinClient;
+import com.backyard.playground.client.grpc.GrpcbinClientImpl;
 import com.google.cloud.language.v2.LanguageServiceGrpc;
+import com.grpcbin.AddGrpc;
 
 import io.grpc.ManagedChannel;
 import io.grpc.Metadata;
 import io.grpc.stub.MetadataUtils;
-
-import java.util.concurrent.TimeUnit;
 
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -38,7 +40,7 @@ import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder;
 @Configuration
 public class GrpcClientConfig {
 
-    private static final Metadata.Key<String> API_KEY_HEADER = Metadata.Key.of("x-api-key",
+    private static final Metadata.Key<String> API_KEY_HEADER = Metadata.Key.of("x-goog-api-key",
             Metadata.ASCII_STRING_MARSHALLER);
 
     @Bean(name = "googleLanguageChannel", destroyMethod = "shutdown")
@@ -52,6 +54,7 @@ public class GrpcClientConfig {
                 .forAddress("language.googleapis.com", 443)
                 .sslContext(GrpcSslContexts.forClient().build())
                 .intercept(MetadataUtils.newAttachHeadersInterceptor(metadata))
+                .intercept(new GrpcClientDeadlineInterceptor(30))
                 .intercept(new GrpcClientLoggingInterceptor("google_language"))
                 .build();
     }
@@ -60,8 +63,23 @@ public class GrpcClientConfig {
     public GoogleLanguageClient languageClient(
             @Qualifier("googleLanguageChannel") ManagedChannel googleLanguageChannel) {
         LanguageServiceGrpc.LanguageServiceBlockingStub stub = LanguageServiceGrpc
-                .newBlockingStub(googleLanguageChannel)
-                .withDeadlineAfter(30, TimeUnit.SECONDS);
+                .newBlockingStub(googleLanguageChannel);
         return new GoogleLanguageClientImpl(stub);
+    }
+
+    @Bean(name = "grpcbinChannel", destroyMethod = "shutdown")
+    public ManagedChannel grpcbinChannel() throws Exception {
+        return NettyChannelBuilder
+                .forAddress("grpcb.in", 9001)
+                .sslContext(GrpcSslContexts.forClient().build())
+                .intercept(new GrpcClientDeadlineInterceptor(10))
+                .intercept(new GrpcClientLoggingInterceptor("grpcbin"))
+                .build();
+    }
+
+    @Bean
+    public GrpcbinClient grpcbinClient(
+            @Qualifier("grpcbinChannel") ManagedChannel grpcbinChannel) {
+        return new GrpcbinClientImpl(AddGrpc.newBlockingStub(grpcbinChannel));
     }
 }

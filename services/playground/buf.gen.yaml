@@ -1,0 +1,12 @@
+version: v2
+inputs:
+  - directory: src/main/proto
+plugins:
+  # protocolbuffers/java version must match <protobuf.version> in pom.xml.
+  # Plugin version vX.Y maps to runtime 4.X.Y (e.g. v34.1 → 4.34.1).
+  # To upgrade: bump both together, then run buf generate + mvnw compile.
+  - remote: buf.build/protocolbuffers/java:v34.1
+    out: target/generated-sources/protobuf/java
+  # grpc/java version must match <grpc.version> in pom.xml.
+  - remote: buf.build/grpc/java:v1.80.0
+    out: target/generated-sources/protobuf/grpc-java
