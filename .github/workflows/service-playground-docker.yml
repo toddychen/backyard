@@ -38,6 +38,7 @@ jobs:
       - name: Build jar (skip tests)
         env:
           BUF_TOKEN: ${{ secrets.BUF_API_TOKEN }}
+          GOOGLE_LANGUAGE_API_KEY: ${{ secrets.GOOGLE_LANGUAGE_API_KEY }}
         run: ./mvnw -f services/playground/pom.xml -B -DskipTests package
 
       - name: Login to GHCR
