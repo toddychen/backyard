@@ -6,6 +6,7 @@
 
 # Secrets — never commit
 secrets/
+**/pm2/ecosystem.config.js
 
 # Maven
 **/target/
