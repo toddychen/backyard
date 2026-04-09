@@ -87,24 +87,23 @@ public class RestClientConfig {
                 .observationRegistry(observationRegistry)
                 .baseUrl("https://ambee-maps-backend.ambeedata.com")
                 .requestFactory(httpRequestFactory)
-                .defaultHeader("Referer", "https://maps.getambee.com/")
-                .defaultHeader("Origin", "https://maps.getambee.com")
-                .defaultHeader(
-                        "User-Agent",
-                        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36")
-                .defaultHeader("Accept", "application/json, text/plain, */*")
-                .defaultHeader("Accept-Language", "en-US,en;q=0.9,zh-CN;q=0.8,zh;q=0.7")
-                .defaultHeader(
-                        "sec-ch-ua",
-                        "\"Chromium\";v=\"146\", \"Not-A.Brand\";v=\"24\", \"Google Chrome\";v=\"146\"")
-                .defaultHeader("sec-ch-ua-mobile", "?0")
-                .defaultHeader("sec-ch-ua-platform", "\"macOS\"")
-                .defaultHeader("sec-fetch-dest", "empty")
-                .defaultHeader("sec-fetch-mode", "cors")
-                .defaultHeader("sec-fetch-site", "cross-site")
+                .defaultHeaders(headers -> {
+                    headers.set("Referer", "https://maps.getambee.com/");
+                    headers.set("Origin", "https://maps.getambee.com");
+                    headers.set("User-Agent",
+                            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36");
+                    headers.set("Accept", "application/json, text/plain, */*");
+                    headers.set("Accept-Language", "en-US,en;q=0.9,zh-CN;q=0.8,zh;q=0.7");
+                    headers.set("sec-ch-ua",
+                            "\"Chromium\";v=\"146\", \"Not-A.Brand\";v=\"24\", \"Google Chrome\";v=\"146\"");
+                    headers.set("sec-ch-ua-mobile", "?0");
+                    headers.set("sec-ch-ua-platform", "\"macOS\"");
+                    headers.set("sec-fetch-dest", "empty");
+                    headers.set("sec-fetch-mode", "cors");
+                    headers.set("sec-fetch-site", "cross-site");
+                })
                 .requestInterceptor(LoggingInterceptor.noRedaction(clientName))
-                .defaultStatusHandler(
-                        HttpStatusCode::isError, ClientStatusHandlers::handleError)
+                .defaultStatusHandler(HttpStatusCode::isError, ClientStatusHandlers::handleError)
                 .build();
 
         AmbeePollenClient httpProxy = HttpServiceProxyFactory.builderFor(RestClientAdapter.create(restClient))
@@ -123,18 +122,17 @@ public class RestClientConfig {
                 .observationRegistry(observationRegistry)
                 .baseUrl("https://mrest.sports.yahoo.com")
                 .requestFactory(httpRequestFactory)
-                .defaultHeader(
-                        "User-Agent",
-                        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36")
-                .defaultHeader("Accept", "application/json, text/plain, */*")
+                .defaultHeaders(headers -> {
+                    headers.set("User-Agent",
+                            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36");
+                    headers.set("Accept", "application/json, text/plain, */*");
+                })
                 // Accept-Language is set dynamically per request by LocaleInterceptor,
                 // which reads the resolved locale from ClientLocaleContextHolder and
                 // maps it to a Yahoo-supported tag via YahooSportsLocaleDTO.
-                .requestInterceptor(
-                        new LocaleInterceptor(YahooSportsLocaleDTO::fromServiceLocale))
+                .requestInterceptor(new LocaleInterceptor(YahooSportsLocaleDTO::fromServiceLocale))
                 .requestInterceptor(LoggingInterceptor.noRedaction(clientName))
-                .defaultStatusHandler(
-                        HttpStatusCode::isError, ClientStatusHandlers::handleError)
+                .defaultStatusHandler(HttpStatusCode::isError, ClientStatusHandlers::handleError)
                 .build();
 
         YahooSportsClient httpProxy = HttpServiceProxyFactory.builderFor(RestClientAdapter.create(restClient))
@@ -172,17 +170,14 @@ public class RestClientConfig {
                 .observationRegistry(observationRegistry)
                 .baseUrl("https://pollen.googleapis.com")
                 .requestFactory(httpRequestFactory)
-                .requestInterceptor(
-                        QueryParamInterceptor.onlyApiKey(
-                                "key",
-                                "google_maps_api_key",
-                                environment,
-                                "../../secrets/api_keys.json",
-                                gcpProjectId))
-                .requestInterceptor(
-                        LoggingInterceptor.withRedactedParams(clientName, Set.of("key")))
-                .defaultStatusHandler(
-                        HttpStatusCode::isError, ClientStatusHandlers::handleError)
+                .requestInterceptor(QueryParamInterceptor.onlyApiKey(
+                        "key",
+                        "google_maps_api_key",
+                        environment,
+                        "../../secrets/api_keys.json",
+                        gcpProjectId))
+                .requestInterceptor(LoggingInterceptor.withRedactedParams(clientName, Set.of("key")))
+                .defaultStatusHandler(HttpStatusCode::isError, ClientStatusHandlers::handleError)
                 .build();
 
         GooglePollenClient httpProxy = HttpServiceProxyFactory.builderFor(RestClientAdapter.create(restClient))

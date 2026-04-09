@@ -14,6 +14,8 @@ import io.github.resilience4j.retry.RetryRegistry;
 import io.grpc.ManagedChannel;
 import io.grpc.Metadata;
 import io.grpc.stub.MetadataUtils;
+import io.micrometer.observation.ObservationRegistry;
+import io.micrometer.core.instrument.binder.grpc.ObservationGrpcClientInterceptor;
 
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -47,7 +49,8 @@ public class GrpcClientConfig {
 
     @Bean(name = "googleLanguageChannel", destroyMethod = "shutdown")
     public ManagedChannel googleLanguageChannel(
-            @Value("${google.language.api-key}") String apiKey)
+            @Value("${google.language.api-key}") String apiKey,
+            ObservationRegistry observationRegistry)
             throws Exception {
         Metadata metadata = new Metadata();
         metadata.put(API_KEY_HEADER, apiKey);
@@ -58,6 +61,7 @@ public class GrpcClientConfig {
                 .intercept(MetadataUtils.newAttachHeadersInterceptor(metadata))
                 .intercept(new GrpcClientDeadlineInterceptor(30))
                 .intercept(new GrpcClientLoggingInterceptor("google_language"))
+                .intercept(new ObservationGrpcClientInterceptor(observationRegistry))
                 .build();
     }
 
@@ -72,12 +76,13 @@ public class GrpcClientConfig {
     }
 
     @Bean(name = "grpcbinChannel", destroyMethod = "shutdown")
-    public ManagedChannel grpcbinChannel() throws Exception {
+    public ManagedChannel grpcbinChannel(ObservationRegistry observationRegistry) throws Exception {
         return NettyChannelBuilder
                 .forAddress("grpcb.in", 9001)
                 .sslContext(GrpcSslContexts.forClient().build())
                 .intercept(new GrpcClientDeadlineInterceptor(10))
                 .intercept(new GrpcClientLoggingInterceptor("grpcbin"))
+                .intercept(new ObservationGrpcClientInterceptor(observationRegistry))
                 .build();
     }
 
