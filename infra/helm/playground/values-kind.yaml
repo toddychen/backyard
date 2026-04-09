@@ -32,6 +32,8 @@ h2DbUrl: "jdbc:h2:file:/data/h2-kind"
 h2DataMount: true
 h2HostPath: "/Users/toddy/.backyard"
 
+googleLanguageApiKeySecretObjectName: playground-secrets
+
 # MySQL — connects to mysql.mysql (in-cluster service)
 # JWT signing secret — min 32 chars for HS256
 jwtSecret: kind-secret-for-local-use-only-padding

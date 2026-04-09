@@ -65,6 +65,13 @@ spec:
             - name: H2_DB_URL
               value: {{ .Values.h2DbUrl | quote }}
             {{- end }}
+            {{- if .Values.googleLanguageApiKeySecretObjectName }}
+            - name: GOOGLE_LANGUAGE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.googleLanguageApiKeySecretObjectName }}
+                  key: GOOGLE_LANGUAGE_API_KEY
+            {{- end }}
             {{- if .Values.mysqlHost }}
             - name: MYSQL_URL
               value: "jdbc:mysql://{{ .Values.mysqlHost }}:{{ .Values.mysqlPort }}/{{ .Values.mysqlDb }}"
