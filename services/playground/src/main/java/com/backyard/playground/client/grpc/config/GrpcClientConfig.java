@@ -9,6 +9,8 @@ import com.backyard.playground.client.grpc.GrpcbinClientImpl;
 import com.google.cloud.language.v2.LanguageServiceGrpc;
 import com.grpcbin.AddGrpc;
 
+import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
+import io.github.resilience4j.retry.RetryRegistry;
 import io.grpc.ManagedChannel;
 import io.grpc.Metadata;
 import io.grpc.stub.MetadataUtils;
@@ -61,10 +63,12 @@ public class GrpcClientConfig {
 
     @Bean
     public GoogleLanguageClient languageClient(
-            @Qualifier("googleLanguageChannel") ManagedChannel googleLanguageChannel) {
+            @Qualifier("googleLanguageChannel") ManagedChannel googleLanguageChannel,
+            CircuitBreakerRegistry cbRegistry,
+            RetryRegistry retryRegistry) {
         LanguageServiceGrpc.LanguageServiceBlockingStub stub = LanguageServiceGrpc
                 .newBlockingStub(googleLanguageChannel);
-        return new GoogleLanguageClientImpl(stub);
+        return new GoogleLanguageClientImpl(stub, cbRegistry, retryRegistry);
     }
 
     @Bean(name = "grpcbinChannel", destroyMethod = "shutdown")
@@ -79,7 +83,9 @@ public class GrpcClientConfig {
 
     @Bean
     public GrpcbinClient grpcbinClient(
-            @Qualifier("grpcbinChannel") ManagedChannel grpcbinChannel) {
-        return new GrpcbinClientImpl(AddGrpc.newBlockingStub(grpcbinChannel));
+            @Qualifier("grpcbinChannel") ManagedChannel grpcbinChannel,
+            CircuitBreakerRegistry cbRegistry,
+            RetryRegistry retryRegistry) {
+        return new GrpcbinClientImpl(AddGrpc.newBlockingStub(grpcbinChannel), cbRegistry, retryRegistry);
     }
 }

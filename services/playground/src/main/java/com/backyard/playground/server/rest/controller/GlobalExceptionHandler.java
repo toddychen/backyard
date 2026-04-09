@@ -8,6 +8,8 @@ import com.backyard.playground.exception.ServiceUnavailableException;
 import com.backyard.playground.exception.UnauthorizedException;
 
 import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
+import io.github.resilience4j.retry.MaxRetriesExceededException;
+import io.grpc.StatusRuntimeException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -74,12 +76,36 @@ public class GlobalExceptionHandler {
                 .body(new ErrorResponse(503, ex.getMessage(), errorId));
     }
 
+    // Thrown by Resilience4j circuit breaker when the circuit is open —
+    // upstream is considered unhealthy and calls are short-circuited.
     @ExceptionHandler(CallNotPermittedException.class)
     public ResponseEntity<ErrorResponse> handleCircuitOpen(CallNotPermittedException ex) {
         String errorId = generateErrorId();
         log.warn("circuit open for '{}': errorId='{}'", ex.getCausingCircuitBreakerName(), errorId);
         return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
                 .body(new ErrorResponse(503, "upstream service temporarily unavailable", errorId));
+    }
+
+    // Thrown by Resilience4j retry when all attempts are exhausted —
+    // upstream returned a transient error (UNAVAILABLE, DEADLINE_EXCEEDED)
+    // on every attempt.
+    @ExceptionHandler(MaxRetriesExceededException.class)
+    public ResponseEntity<ErrorResponse> handleMaxRetries(MaxRetriesExceededException ex) {
+        String errorId = generateErrorId();
+        log.error("max retries exceeded: errorId='{}'", errorId, ex.getCause());
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(new ErrorResponse(503, "upstream service temporarily unavailable", errorId));
+    }
+
+    // Catches unhandled gRPC errors — the gRPC equivalent of RestClientException.
+    // In practice BaseClient.rpc() maps these to domain exceptions, but this
+    // acts as a safety net for any StatusRuntimeException that escapes.
+    @ExceptionHandler(StatusRuntimeException.class)
+    public ResponseEntity<ErrorResponse> handleStatusRuntimeException(StatusRuntimeException ex) {
+        String errorId = generateErrorId();
+        log.error("unhandled gRPC error: status='{}' errorId='{}'", ex.getStatus().getCode(), errorId, ex);
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(new ErrorResponse(503, "upstream service unavailable", errorId));
     }
 
     // Catches unhandled RestClient failures — network errors, unexpected
