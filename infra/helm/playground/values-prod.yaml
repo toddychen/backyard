@@ -5,7 +5,7 @@ replicas: 2
 
 image:
   repository: ghcr.io/toddychen/service-playground
-  tag: "61ad8cc56a0d5a783c4e37715c2fadf52cab5f08" # Set to git SHA for promote; set to previous SHA to revert
+  tag: "61b88931798d950102993ae56591834fb1b8220e" # Set to git SHA for promote; set to previous SHA to revert
   pullPolicy: Always
 
 springProfile: prod
