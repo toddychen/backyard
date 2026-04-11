@@ -1,0 +1,6 @@
+apiVersion: v2
+name: kafka
+description: Kafka 3.9 (KRaft, single broker) for local dev (Kind cluster only)
+type: application
+version: 0.1.0
+appVersion: "3.9"

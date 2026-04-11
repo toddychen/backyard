@@ -1,0 +1,42 @@
+---
+# Headless service — required by StatefulSet for stable pod DNS
+# (kafka-0.kafka.default.svc.cluster.local)
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}
+  labels:
+    app.kubernetes.io/name: {{ .Chart.Name }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  type: ClusterIP
+  clusterIP: None
+  selector:
+    app.kubernetes.io/name: {{ .Chart.Name }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+  ports:
+    - name: broker
+      port: {{ .Values.service.port }}
+      targetPort: broker
+    - name: controller
+      port: 9093
+      targetPort: controller
+---
+# NodePort service — host access for local dev profile producers/consumers
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-external
+  labels:
+    app.kubernetes.io/name: {{ .Chart.Name }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  type: NodePort
+  selector:
+    app.kubernetes.io/name: {{ .Chart.Name }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+  ports:
+    - name: external
+      port: {{ .Values.service.externalPort }}
+      targetPort: {{ .Values.service.externalPort }}
+      nodePort: {{ .Values.service.nodePort }}

@@ -334,6 +334,80 @@ the client also needs to send messages mid-stream.
 
 ---
 
+## SSE — Explore Server-Sent Events with Example Endpoints
+
+Build concrete SSE endpoints to understand the protocol hands-on, using an
+LLM chat response as the primary real-world example.
+
+**Example endpoints to implement:**
+
+- **Echo stream** — accept a message, split it into words, and emit one word
+  per event with a small delay. Simplest possible SSE to verify the plumbing.
+- **LLM chat response stream** — call the Anthropic (or OpenAI) API in
+  streaming mode and forward each token chunk as an SSE event to the client.
+  Client renders tokens incrementally as they arrive, matching the ChatGPT UX.
+- **Live progress stream** — emit periodic status events for a long-running
+  background task (e.g. `{"status":"processing","pct":42}`), then a final
+  `done` event when complete.
+
+**What needs to be done:**
+- Add endpoints returning `SseEmitter` (blocking) for the echo and progress
+  examples
+- Wire the Anthropic SDK streaming method to an `SseEmitter` or reactive
+  `Flux<ServerSentEvent<String>>` for the LLM example
+- Set event types (`event:` field) so the client can distinguish token chunks
+  from control events (e.g. `done`, `error`)
+- Handle client disconnect: catch `IOException` on emit and complete/release
+  the emitter
+- Test echo and progress with `curl -N`; test LLM stream in a browser with
+  `EventSource` or a minimal HTML page
+
+**Goal:**
+- Understand SSE framing: `data:`, `event:`, `id:`, `retry:` fields
+- Experience the LLM streaming UX end-to-end from API call to browser render
+- Establish a reusable SSE pattern for any future push-notification feature
+
+---
+
+## WebSocket Chat Application
+
+Build a minimal multi-user chat app as a concrete end-to-end example of the
+WebSocket infrastructure, using STOMP over WebSocket for message routing.
+
+**What to implement:**
+- **Server** — STOMP message broker backed by Spring's in-memory broker or an
+  external broker (RabbitMQ). Users subscribe to a topic (e.g. `/topic/chat`)
+  and the server broadcasts messages to all subscribers.
+- **Client** — simple browser UI (HTML + JS) using `sockjs-client` and
+  `@stomp/stompjs` to connect, send messages, and display incoming messages
+  in real time.
+
+**What needs to be done:**
+- Add `spring-boot-starter-websocket` and configure `WebSocketMessageBrokerConfigurer`
+- Enable simple in-memory broker on `/topic`, set app destination prefix `/app`
+- Add a `@MessageMapping("/chat.send")` controller method that broadcasts to
+  `/topic/chat`
+- Handle user join/leave events via `@EventListener` on
+  `SessionConnectedEvent` / `SessionDisconnectEvent`
+- Build a minimal HTML page: connect button, message input, scrolling message list
+- Test with two browser tabs sending messages to each other
+
+**Collaborative editing example:**
+- Multi-user shared text editor where edits broadcast in real time to all connected clients
+- Server receives edit operations (insert/delete at position) and fans them out to
+  all subscribers on a document topic (e.g. `/topic/doc/{id}`)
+- Client applies incoming ops to local state; start with last-write-wins, then explore
+  OT (Operational Transformation) or CRDT approaches for conflict resolution
+- Demonstrates per-document topic routing, user presence tracking, and ordered
+  message delivery
+
+**Goal:**
+- Concrete working example of full-duplex WebSocket messaging end-to-end
+- Learn STOMP topic fan-out, session lifecycle, and Spring's message broker config
+- Reusable pattern for any future real-time feature (notifications, live updates)
+
+---
+
 ## Testing Strategy
 
 ### REST Service Tests
@@ -453,6 +527,34 @@ internal APIs is gated by policy rather than shared secrets.
 
 ---
 
+## WebRTC Connection
+
+Add WebRTC support for real-time peer-to-peer communication between clients,
+with a signaling server to coordinate connection establishment.
+
+**What to implement:**
+- **Signaling server** — exchange SDP offers/answers and ICE candidates between
+  peers so they can negotiate a direct P2P connection. Typically implemented over
+  WebSockets or SSE.
+- **Client** — browser or native client that initiates/accepts WebRTC connections,
+  opens data channels or media streams, and handles ICE negotiation.
+
+**What needs to be done:**
+- Implement a WebSocket-based signaling endpoint in the Spring Boot service
+  (reuse the WebSocket infrastructure from the Streaming Endpoints TODO)
+- Handle signaling message types: `offer`, `answer`, `ice-candidate`, `join`, `leave`
+- Build a minimal JS/browser client using the browser WebRTC API (`RTCPeerConnection`)
+- Test a basic data channel echo between two browser tabs via the signaling server
+- Consider TURN/STUN server setup for NAT traversal (e.g. Google's public STUN,
+  or deploy Coturn for TURN)
+
+**Goal:**
+- Learn the WebRTC handshake and ICE negotiation flow end-to-end
+- Enable real-time P2P data or media streaming between clients
+- Establish a signaling pattern reusable for future real-time features
+
+---
+
 ## Message Queue Service
 
 Introduce a distributed message queue to decouple services, handle async workloads, and absorb traffic spikes.
@@ -479,3 +581,72 @@ Introduce a distributed message queue to decouple services, handle async workloa
 - Decouple services for independent scaling and deployment
 - Handle async workloads without blocking request threads
 - Build foundation for event-driven architecture
+
+---
+
+## Subscription Data — Cassandra
+
+Store subscription/event data in Apache Cassandra, suited for high-write,
+time-series, and append-heavy workloads like subscription event streams.
+
+**Why Cassandra:**
+- Optimized for high write throughput and wide rows — ideal for recording
+  subscription lifecycle events (created, renewed, cancelled, expired)
+- Linear horizontal scalability with no single point of failure
+- Time-series access patterns (fetch all events for a subscriber, range by
+  time) map naturally to Cassandra partition + clustering key design
+- Better fit than MySQL for append-only event logs at scale
+
+**What needs to be done:**
+- Add `spring-boot-starter-data-cassandra` to `pom.xml`
+- Define keyspace and table schema: partition key on `subscriber_id`,
+  clustering key on `event_time DESC` for efficient latest-first queries
+- Create `@Table`-annotated entity and `CassandraRepository` interface
+- Deploy Cassandra: self-hosted in cluster or use DataStax Astra (managed
+  Cassandra on GCP)
+- Store credentials (contact points, keyspace, username/password) in GCP
+  Secret Manager
+
+**Goal:**
+- Learn Cassandra data modelling (partition key, clustering key, wide rows)
+- Handle subscription event storage at scale without MySQL write bottlenecks
+- Establish a pattern for append-heavy, time-series data alongside the
+  existing relational (MySQL) and vector (Qdrant) stores
+
+---
+
+## Geospatial Index in Database
+
+Add geospatial indexing to support location-based queries such as
+"find points within radius", "nearest N locations", or bounding-box searches.
+
+**Options by database:**
+- **MySQL** — supports `SPATIAL INDEX` on `GEOMETRY`/`POINT` columns using
+  the R-tree index. Queries via `ST_Distance_Sphere`, `ST_Within`,
+  `MBRContains`. Good fit if already on MySQL and queries are moderate volume.
+- **PostgreSQL + PostGIS** — the industry standard for geospatial SQL.
+  PostGIS adds full GIS types (`geography`, `geometry`), operators, and
+  functions. Supports complex spatial queries, projections, and indexing
+  via GiST/SP-GiST indexes.
+- **Elasticsearch** — `geo_point` and `geo_shape` types with `geo_distance`
+  and `geo_bounding_box` queries. Good when geospatial search is combined
+  with full-text or faceted search.
+- **Redis** — `GEOADD` / `GEODIST` / `GEORADIUS` commands for lightweight
+  proximity lookups entirely in memory. Simple but no complex polygon queries.
+
+**What needs to be done:**
+- Choose backend based on query complexity and existing DB stack
+- Define schema: store `POINT(lng, lat)` column with a spatial index
+- Add Spring Data repository methods using `@Query` with spatial functions
+  (e.g. `ST_Distance_Sphere` for MySQL, PostGIS operators for PostgreSQL)
+- Seed test data and verify index is used via `EXPLAIN`
+- Deploy spatial-capable DB instance (MySQL with spatial support, or Cloud
+  SQL PostgreSQL with PostGIS extension enabled)
+
+**Goal:**
+- Learn spatial indexing concepts (R-tree, GiST) and how databases
+  accelerate proximity queries
+- Enable location-aware features (e.g. find nearby points of interest,
+  filter by radius)
+- Understand trade-offs between relational spatial (PostGIS) vs in-memory
+  (Redis) vs search-engine (Elasticsearch) approaches

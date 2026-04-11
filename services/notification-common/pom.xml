@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.backyard</groupId>
+        <artifactId>services</artifactId>
+        <version>0.0.1-SNAPSHOT</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>notification-common</artifactId>
+    <name>notification-common</name>
+    <description>
+        Shared Cassandra entities, repositories, Kafka topic definitions, and
+        message models for the notification system. Used by both playground
+        (write path) and notification-consumer (fan-out/send path).
+        Schema source of truth: infra/cassandra/schema.cql
+    </description>
+
+    <!-- Not a Spring Boot executable — plain jar consumed by other modules. -->
+    <!-- No spring-boot-maven-plugin here. -->
+
+    <dependencies>
+        <!-- Cassandra entity mapping and repository abstraction -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-cassandra</artifactId>
+        </dependency>
+        <!-- Kafka topic definitions and message models -->
+        <dependency>
+            <groupId>org.springframework.kafka</groupId>
+            <artifactId>spring-kafka</artifactId>
+        </dependency>
+    </dependencies>
+
+</project>

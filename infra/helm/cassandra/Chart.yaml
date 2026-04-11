@@ -1,0 +1,6 @@
+apiVersion: v2
+name: cassandra
+description: Cassandra 5 for local dev (Kind cluster only)
+type: application
+version: 0.1.0
+appVersion: "5.0"

@@ -1,0 +1,20 @@
+image:
+  repository: provectuslabs/kafka-ui
+  tag: latest
+  pullPolicy: IfNotPresent
+
+kafka:
+  clusterName: kind
+  bootstrapServers: kafka-0.kafka.kafka.svc.cluster.local:9092
+
+service:
+  port: 8080
+  nodePort: 30880
+
+resources:
+  requests:
+    memory: 256Mi
+    cpu: 100m
+  limits:
+    memory: 512Mi
+    cpu: 500m

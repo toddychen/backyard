@@ -14,6 +14,15 @@ echo ""
 bash "${SCRIPTS_DIR}/deploy-mysql-kind.sh"
 echo ""
 
+bash "${SCRIPTS_DIR}/deploy-cassandra-kind.sh"
+echo ""
+
+bash "${SCRIPTS_DIR}/deploy-kafka-kind.sh"
+echo ""
+
+bash "${SCRIPTS_DIR}/deploy-kafka-ui-kind.sh"
+echo ""
+
 bash "${SCRIPTS_DIR}/deploy-jaeger-kind.sh"
 echo ""
 
@@ -33,6 +42,9 @@ echo "========================================"
 echo " All services deployed"
 echo "  Redis:      redis-cli -h 127.0.0.1 -p 30379"
 echo "  MySQL:      127.0.0.1:30306"
+echo "  Cassandra:  cqlsh 127.0.0.1 30942"
+echo "  Kafka:      localhost:30092"
+echo "  Kafka UI:   http://localhost:30880"
 echo "  Jaeger UI:  http://127.0.0.1:30686"
 echo "  Prometheus: http://127.0.0.1:30090"
 echo "  Grafana:    http://127.0.0.1:30030  (admin / admin)"

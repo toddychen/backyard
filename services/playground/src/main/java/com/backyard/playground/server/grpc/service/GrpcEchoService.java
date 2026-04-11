@@ -39,6 +39,18 @@ public class GrpcEchoService extends EchoGrpc.EchoImplBase {
                     .setMessage("echo: " + request.getMessage())
                     .setIndex(i)
                     .build());
+            try {
+                // Intentional delay to demonstrate server-streaming behavior:
+                // each EchoResponse is sent and received by the client independently
+                // before all messages are ready. With grpcurl, responses print one
+                // by one 500ms apart. In Jaeger, each "sent" event is spaced 500ms
+                // apart on the span timeline. A blocking stub client processes each
+                // message via Iterator.next() as it arrives without waiting for all.
+                Thread.sleep(500);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return;
+            }
         }
         responseObserver.onCompleted();
     }

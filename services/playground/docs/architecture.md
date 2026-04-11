@@ -28,6 +28,7 @@ and diagnostics. Runs across four deployment profiles: `dev` (local),
 16. [Secrets Management](#16-secrets-management)
 17. [Locale Pipeline (i18n)](#17-locale-pipeline-i18n)
 18. [API Documentation](#18-api-documentation)
+19. [Server Threading Model](#19-server-threading-model)
 
 ---
 
@@ -960,3 +961,88 @@ Swagger UI and the spec endpoint are disabled in production:
 springdoc.swagger-ui.enabled=false
 springdoc.api-docs.enabled=false
 ```
+
+---
+
+## 19. Server Threading Model
+
+Two separate server stacks run in the same JVM on different ports:
+
+```
+JVM
+├── Tomcat  (port 8080)  — REST/HTTP, Spring MVC controllers
+└── Netty   (port 9090)  — gRPC, @GrpcService implementations
+```
+
+### Tomcat (REST)
+
+Spring Boot's default embedded HTTP server. Handles all REST traffic via
+Spring MVC controllers. Threading model: one virtual thread per request
+(enabled via `spring.threads.virtual.enabled=true`).
+
+**Virtual threads** (Java 21, Project Loom) replace platform threads for
+request handling. Each request still follows the familiar blocking
+programming model, but the JVM schedules virtual threads on a small pool
+of carrier threads — blocking a virtual thread (e.g. waiting on a DB call
+or outbound HTTP) parks it cheaply (~few KB) instead of blocking a platform
+thread (~1MB stack). This closes most of the practical concurrency gap with
+reactive frameworks without requiring reactive code.
+
+```properties
+# application.properties
+spring.threads.virtual.enabled=true
+```
+
+### Netty (gRPC)
+
+`grpc-spring-boot-starter` (`net.devh`) spins up a Netty-based gRPC server
+independently of Tomcat. Netty uses an event loop model: a small fixed pool
+of I/O threads (typically `2 × CPU cores`) handles all connections via Java
+NIO — no thread-per-connection, fully non-blocking at the I/O layer.
+
+gRPC outbound client calls (`ManagedChannel`) also use Netty under the hood,
+with its own client event loop pool separate from the server loop.
+
+### Coexistence
+
+The two stacks share the JVM process but nothing else — separate thread
+pools, separate ports, independent lifecycles. The only interaction point is
+when a REST request triggers an outbound gRPC client call:
+
+```
+Tomcat virtual thread (REST)
+  → gRPC stub call
+    → Netty client event loop (ManagedChannel)
+      → upstream gRPC service
+```
+
+Micrometer's context propagation bridges the trace context across this
+handoff. `ObservationGrpcClientInterceptor` injects the active
+`traceId`/`spanId` into outbound gRPC metadata so the trace is continuous
+across the REST → gRPC boundary.
+
+### Comparison
+
+| | Tomcat | Netty (gRPC) |
+|---|---|---|
+| Role | REST HTTP server | gRPC server + client |
+| Threading | Virtual threads (one per request) | Event loop (fixed pool) |
+| Port | 8080 | 9090 |
+| Programming model | Blocking (loom-based) | Non-blocking (NIO) |
+| Servlet spec | Yes | No |
+
+### Jetty (not used)
+
+Jetty is a direct peer of Tomcat — another servlet container with the same
+thread-per-request model and virtual thread support. Spring Boot supports
+swapping Tomcat for Jetty with one dependency change. Playground uses
+Tomcat (Spring Boot default); Jetty would behave identically for this
+use case.
+
+### SSE on Tomcat
+
+`SseEmitter` keeps the HTTP response open after the request thread returns,
+using Servlet async mode (`AsyncContext`) internally. A separate thread
+(from an `ExecutorService`) drives the emitter, calling `emitter.send(...)`
+synchronously. With virtual threads this blocking cost is negligible — the
+emitter-driving thread is a cheap virtual thread parked between writes.

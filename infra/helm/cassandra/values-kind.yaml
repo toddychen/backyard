@@ -1,0 +1,17 @@
+replicas: 1
+
+jvm:
+  maxHeapSize: "1G"
+  newHeapSize: "256M"
+
+resources:
+  requests:
+    memory: 2Gi
+    cpu: 500m
+  limits:
+    memory: 2Gi
+    cpu: "1"
+
+storage:
+  size: 5Gi
+  dataHostPath: /Users/toddy/.backyard/cassandra-kind

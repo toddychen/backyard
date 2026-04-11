@@ -32,6 +32,18 @@ nodes:
       - containerPort: 30306
         hostPort: 30306
         protocol: TCP
+      # Cassandra (cqlsh from host, local dev profile)
+      - containerPort: 30942
+        hostPort: 30942
+        protocol: TCP
+      # Kafka (producer/consumer from host, local dev profile)
+      - containerPort: 30092
+        hostPort: 30092
+        protocol: TCP
+      # Kafka UI
+      - containerPort: 30880
+        hostPort: 30880
+        protocol: TCP
       # Grafana UI
       - containerPort: 30030
         hostPort: 30030

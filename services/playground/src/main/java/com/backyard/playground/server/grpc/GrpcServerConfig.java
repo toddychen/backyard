@@ -21,6 +21,8 @@ import io.grpc.health.v1.HealthCheckResponse.ServingStatus;
 import io.grpc.protobuf.services.HealthStatusManager;
 import io.grpc.protobuf.services.ProtoReflectionServiceV1;
 import io.grpc.netty.shaded.io.grpc.netty.NettyServerBuilder;
+import io.micrometer.core.instrument.binder.grpc.ObservationGrpcServerInterceptor;
+import io.micrometer.observation.ObservationRegistry;
 
 @Configuration
 public class GrpcServerConfig implements SmartLifecycle {
@@ -33,6 +35,7 @@ public class GrpcServerConfig implements SmartLifecycle {
     private final GrpcExceptionInterceptor grpcExceptionInterceptor;
     private final GrpcLocaleInterceptor grpcLocaleInterceptor;
     private final GrpcAccessLogInterceptor grpcAccessLogInterceptor;
+    private final ObservationRegistry observationRegistry;
     private final HealthStatusManager healthStatusManager = new HealthStatusManager();
 
     private Server server;
@@ -44,13 +47,15 @@ public class GrpcServerConfig implements SmartLifecycle {
             GrpcSportService grpcSportService,
             GrpcExceptionInterceptor grpcExceptionInterceptor,
             GrpcLocaleInterceptor grpcLocaleInterceptor,
-            GrpcAccessLogInterceptor grpcAccessLogInterceptor) {
+            GrpcAccessLogInterceptor grpcAccessLogInterceptor,
+            ObservationRegistry observationRegistry) {
         this.port = port;
         this.grpcEchoService = grpcEchoService;
         this.grpcSportService = grpcSportService;
         this.grpcExceptionInterceptor = grpcExceptionInterceptor;
         this.grpcLocaleInterceptor = grpcLocaleInterceptor;
         this.grpcAccessLogInterceptor = grpcAccessLogInterceptor;
+        this.observationRegistry = observationRegistry;
     }
 
     @Override
@@ -79,6 +84,7 @@ public class GrpcServerConfig implements SmartLifecycle {
                     .intercept(grpcExceptionInterceptor)
                     .intercept(grpcAccessLogInterceptor)
                     .intercept(grpcLocaleInterceptor)
+                    .intercept(new ObservationGrpcServerInterceptor(observationRegistry))
                     .addService(grpcEchoService)
                     .addService(grpcSportService)
                     .addService(healthStatusManager.getHealthService())

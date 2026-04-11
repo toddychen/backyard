@@ -1,0 +1,33 @@
+image:
+  repository: cassandra
+  tag: "5.0"
+  pullPolicy: IfNotPresent
+
+replicas: 3
+
+service:
+  port: 9042
+  # NodePort for host cqlsh access (e.g. cqlsh localhost 30942 -f schema.cql)
+  nodePort: 30942
+
+# Keyspace created by applying infra/cassandra/schema.cql after cluster is ready
+keyspace: notification
+
+jvm:
+  # Leave remaining memory for OS page cache (SSTable reads)
+  maxHeapSize: "1G"
+  newHeapSize: "256M"
+
+resources:
+  requests:
+    memory: 2Gi
+    cpu: "1"
+  limits:
+    memory: 4Gi
+    cpu: "2"
+
+storage:
+  size: 20Gi
+  # Mount host directory for persistent data across cluster restarts.
+  # Override in values-kind.yaml — leave empty for PVC-based storage.
+  dataHostPath: ""

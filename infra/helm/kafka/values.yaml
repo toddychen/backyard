@@ -1,0 +1,30 @@
+image:
+  repository: apache/kafka
+  tag: "3.9.0"
+  pullPolicy: IfNotPresent
+
+service:
+  port: 9092
+  # External listener port inside the pod (mapped to nodePort on the host)
+  externalPort: 9094
+  # NodePort for host producer/consumer access (e.g. local dev profile)
+  nodePort: 30092
+
+# Stable KRaft cluster ID — generate once with:
+#   docker run --rm apache/kafka:3.9.0 kafka-storage.sh random-uuid
+# If blank, a random ID is generated on first boot (fine for dev).
+clusterId: ""
+
+resources:
+  requests:
+    memory: 512Mi
+    cpu: 200m
+  limits:
+    memory: 1Gi
+    cpu: "1"
+
+storage:
+  size: 5Gi
+  # Mount host directory for persistent data across cluster restarts.
+  # Override in values-kind.yaml — leave empty for PVC-based storage.
+  dataHostPath: ""

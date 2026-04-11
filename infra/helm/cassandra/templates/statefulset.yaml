@@ -1,0 +1,78 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ .Release.Name }}
+  labels:
+    app.kubernetes.io/name: {{ .Chart.Name }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  serviceName: {{ .Release.Name }}
+  replicas: {{ .Values.replicas }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ .Chart.Name }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ .Chart.Name }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: cql
+              containerPort: {{ .Values.service.port }}
+              protocol: TCP
+            - name: gossip
+              containerPort: 7000
+              protocol: TCP
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: CASSANDRA_SEEDS
+              # First pod is the seed; other pods discover peers through it
+              value: "{{ .Release.Name }}-0.{{ .Release.Name }}.{{ .Release.Namespace }}.svc.cluster.local"
+            - name: CASSANDRA_CLUSTER_NAME
+              value: {{ .Release.Name | quote }}
+            - name: MAX_HEAP_SIZE
+              value: {{ .Values.jvm.maxHeapSize | quote }}
+            - name: HEAP_NEWSIZE
+              value: {{ .Values.jvm.newHeapSize | quote }}
+          readinessProbe:
+            exec:
+              command: ["cqlsh", "-e", "describe cluster"]
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            failureThreshold: 10
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/cassandra
+              {{- if .Values.storage.dataHostPath }}
+              # Each pod writes to its own subdirectory (cassandra-0, cassandra-1, ...)
+              # so replicas never share data and scaling up preserves existing data.
+              subPathExpr: $(POD_NAME)
+              {{- end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      {{- if .Values.storage.dataHostPath }}
+      volumes:
+        - name: data
+          hostPath:
+            path: {{ .Values.storage.dataHostPath }}
+            type: DirectoryOrCreate
+      {{- end }}
+  {{- if not .Values.storage.dataHostPath }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: {{ .Values.storage.size }}
+  {{- end }}

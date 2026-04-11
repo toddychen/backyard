@@ -5,15 +5,13 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-parent</artifactId>
-        <version>4.0.4</version>
-        <relativePath/>
+        <groupId>com.backyard</groupId>
+        <artifactId>services</artifactId>
+        <version>0.0.1-SNAPSHOT</version>
+        <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <groupId>com.backyard</groupId>
     <artifactId>playground</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
     <name>playground</name>
     <description>Backyard playground service</description>
 
@@ -47,6 +45,13 @@
     </dependencyManagement>
 
     <dependencies>
+        <!-- Shared Cassandra entities, Kafka topics and message models -->
+        <dependency>
+            <groupId>com.backyard</groupId>
+            <artifactId>notification-common</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
         <!-- Core web framework: embedded Tomcat, Spring MVC, REST controllers,
              Jackson JSON support -->
         <dependency>

@@ -1,0 +1,42 @@
+---
+# Headless service — required by StatefulSet for stable pod DNS
+# (cassandra-0.cassandra.default.svc.cluster.local)
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}
+  labels:
+    app.kubernetes.io/name: {{ .Chart.Name }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  type: ClusterIP
+  clusterIP: None
+  selector:
+    app.kubernetes.io/name: {{ .Chart.Name }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+  ports:
+    - name: cql
+      port: {{ .Values.service.port }}
+      targetPort: cql
+    - name: gossip
+      port: 7000
+      targetPort: gossip
+---
+# NodePort service — host access for cqlsh and app dev profile
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-external
+  labels:
+    app.kubernetes.io/name: {{ .Chart.Name }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  type: NodePort
+  selector:
+    app.kubernetes.io/name: {{ .Chart.Name }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+  ports:
+    - name: cql
+      port: {{ .Values.service.port }}
+      targetPort: cql
+      nodePort: {{ .Values.service.nodePort }}
