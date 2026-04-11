@@ -6,11 +6,11 @@ on:
       - main
     paths:
       - "services/playground/**"
-      - ".github/workflows/service-playground.yml"
+      - ".github/workflows/service-playground-ci.yml"
   pull_request:
     paths:
       - "services/playground/**"
-      - ".github/workflows/service-playground.yml"
+      - ".github/workflows/service-playground-ci.yml"
 
 permissions:
   contents: read
