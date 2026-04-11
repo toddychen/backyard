@@ -39,7 +39,7 @@ jobs:
         env:
           BUF_TOKEN: ${{ secrets.BUF_API_TOKEN }}
           GOOGLE_LANGUAGE_API_KEY: ${{ secrets.GOOGLE_LANGUAGE_API_KEY }}
-        run: ./mvnw -f services/playground/pom.xml -B -DskipTests package
+        run: ./mvnw -f services/pom.xml -B -DskipTests package --pl notification-common,playground
 
       - name: Login to GHCR
         uses: docker/login-action@v3
