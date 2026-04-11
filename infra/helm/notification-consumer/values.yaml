@@ -1,0 +1,25 @@
+replicas: 2
+
+image:
+  repository: notification-consumer
+  tag: dev
+  pullPolicy: Never
+
+springProfile: ""
+
+kafka:
+  bootstrapServers: kafka-0.kafka.kafka.svc.cluster.local:9092
+
+cassandra:
+  contactPoints: cassandra.cassandra
+  port: "9042"
+  keyspace: notification
+  localDc: datacenter1
+
+resources:
+  requests:
+    memory: 256Mi
+    cpu: 100m
+  limits:
+    memory: 512Mi
+    cpu: 500m

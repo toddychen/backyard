@@ -1,0 +1,8 @@
+replicas: 2
+
+springProfile: kind
+
+image:
+  repository: ghcr.io/<username>/service-notification-consumer
+  tag: <git-sha>
+  pullPolicy: IfNotPresent
