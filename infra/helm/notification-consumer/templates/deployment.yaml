@@ -40,7 +40,19 @@ spec:
               value: {{ .Values.cassandra.keyspace | quote }}
             - name: CASSANDRA_LOCAL_DC
               value: {{ .Values.cassandra.localDc | quote }}
-          # No HTTP probes — this is a headless worker service with no web layer.
-          # Kubernetes restarts the pod if the JVM process exits with a non-zero code.
+          ports:
+            - containerPort: 8080
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8080
+            initialDelaySeconds: 20
+            periodSeconds: 10
           resources:
             {{- toYaml .Values.resources | nindent 12 }}

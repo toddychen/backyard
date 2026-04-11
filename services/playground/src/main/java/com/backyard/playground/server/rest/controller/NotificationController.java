@@ -14,7 +14,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.backyard.playground.data.model.notification.PushDestinationInputDTO;
 import com.backyard.playground.data.model.notification.SubscriptionInputDTO;
+import com.backyard.playground.data.model.notification.TriggerFanoutEventInputDTO;
 import com.backyard.playground.service.notification.PushDestinationService;
+import com.backyard.playground.service.notification.NotificationEventService;
 import com.backyard.playground.service.notification.SubscriptionService;
 
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -26,12 +28,15 @@ public class NotificationController extends BaseController {
 
     private final PushDestinationService pushDestinationService;
     private final SubscriptionService subscriptionService;
+    private final NotificationEventService notificationEventService;
 
     public NotificationController(
             PushDestinationService pushDestinationService,
-            SubscriptionService subscriptionService) {
+            SubscriptionService subscriptionService,
+            NotificationEventService notificationEventService) {
         this.pushDestinationService = pushDestinationService;
         this.subscriptionService = subscriptionService;
+        this.notificationEventService = notificationEventService;
     }
 
     // -- Destinations --
@@ -88,6 +93,14 @@ public class NotificationController extends BaseController {
             @PathVariable String topicId) {
         subscriptionService.unsubscribe(resolveUserId(mockUserId), topicId);
         return ResponseEntity.noContent().build();
+    }
+
+    // -- Event trigger (dev/testing) --
+
+    @PostMapping(value = "/events/trigger", version = "1+")
+    public ResponseEntity<Object> triggerFanoutEvent(
+            @RequestBody TriggerFanoutEventInputDTO req) {
+        return ResponseEntity.status(202).body(notificationEventService.publishFanoutEvent(req));
     }
 
     // -- Helpers --

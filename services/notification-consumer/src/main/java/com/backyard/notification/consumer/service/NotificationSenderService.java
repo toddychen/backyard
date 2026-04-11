@@ -15,6 +15,9 @@ import com.backyard.notification.common.kafka.message.RetryMessage;
 import com.backyard.notification.common.kafka.message.SendMessage;
 import com.backyard.notification.consumer.kafka.producer.RetryProducer;
 
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
+
 /**
  * Performs dry-run push sends and owns all error-handling decisions.
  *
@@ -40,9 +43,19 @@ public class NotificationSenderService {
     private static final long RETRY_DELAY_MS = 5_000;
 
     private final RetryProducer retryProducer;
+    private final Counter apnsSuccess;
+    private final Counter apnsRetry;
+    private final Counter apnsInvalid;
+    private final Counter fcmSuccess;
+    private final Counter fcmRetry;
 
-    public NotificationSenderService(RetryProducer retryProducer) {
+    public NotificationSenderService(RetryProducer retryProducer, MeterRegistry meterRegistry) {
         this.retryProducer = retryProducer;
+        this.apnsSuccess = meterRegistry.counter("notification.send", "platform", "apns", "result", "success");
+        this.apnsRetry = meterRegistry.counter("notification.send", "platform", "apns", "result", "retry");
+        this.apnsInvalid = meterRegistry.counter("notification.send", "platform", "apns", "result", "invalid_token");
+        this.fcmSuccess = meterRegistry.counter("notification.send", "platform", "fcm", "result", "success");
+        this.fcmRetry = meterRegistry.counter("notification.send", "platform", "fcm", "result", "retry");
     }
 
     /**
@@ -71,12 +84,15 @@ public class NotificationSenderService {
     private void sendApnsOne(SendMessage msg, PushDestinationInfo dest) {
         try {
             sendApns(dest.getPushToken(), dest.getBundleId(), dest.getApnsEnv(), msg.getTitle());
+            apnsSuccess.increment();
         } catch (TokenInvalidException e) {
             // TODO: mark token_valid=false in push_destinations_by_user
             log.warn("APNS: invalid token userId={}", dest.getUserId());
+            apnsInvalid.increment();
         } catch (Exception e) {
             log.warn("APNS: transient error, queued for retry. eventId={} userId={} token={}",
                     msg.getEventId(), dest.getUserId(), truncateToken(dest.getPushToken()));
+            apnsRetry.increment();
             retryProducer.publish(toRetryMessage(msg, dest));
         }
     }
@@ -137,8 +153,10 @@ public class NotificationSenderService {
         for (var dest : msg.getDestinations()) {
             if (ThreadLocalRandom.current().nextDouble() < 0.001) {
                 failed.add(dest);
+                fcmRetry.increment();
             } else {
                 log.info("FCM DRY-RUN | token={} title={}", dest.getPushToken(), msg.getTitle());
+                fcmSuccess.increment();
             }
         }
         return failed;

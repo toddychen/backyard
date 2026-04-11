@@ -47,7 +47,7 @@ public class FanOutConsumer {
     @KafkaListener(topics = Topics.NOTIFICATION_FANOUT)
     public void consume(ConsumerRecord<String, FanoutMessage> record) {
         var msg = record.value();
-        log.debug("FanOut received: topic={} eventId={} range=[{}, {})",
+        log.info("FanOut received: topic={} eventId={} range=[{}, {})",
                 msg.getTopicId(), msg.getEventId(), msg.getRangeStart(), msg.getRangeEnd());
 
         List<UUID> batch = new ArrayList<>(USER_BATCH_SIZE);

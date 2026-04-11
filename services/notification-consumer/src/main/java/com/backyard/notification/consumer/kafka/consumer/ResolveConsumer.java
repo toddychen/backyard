@@ -51,7 +51,7 @@ public class ResolveConsumer {
     @KafkaListener(topics = Topics.NOTIFICATION_RESOLVE)
     public void consume(ConsumerRecord<String, ResolveMessage> record) {
         var msg = record.value();
-        log.debug("Resolve received: eventId={} users={}", msg.getEventId(), msg.getUserIds().size());
+        log.info("Resolve received: eventId={} users={}", msg.getEventId(), msg.getUserIds().size());
 
         // Fire all device reads concurrently then collect
         List<PushDestinationInfo> destinations = notificationDataService
@@ -61,7 +61,7 @@ public class ResolveConsumer {
                 .toList();
 
         if (destinations.isEmpty()) {
-            log.debug("Resolve: no deliverable destinations for eventId={}", msg.getEventId());
+            log.info("Resolve: no deliverable destinations for eventId={}", msg.getEventId());
             return;
         }
 
