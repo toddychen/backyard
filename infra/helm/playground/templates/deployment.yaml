@@ -80,6 +80,16 @@ spec:
             - name: MYSQL_PASSWORD
               value: {{ .Values.mysqlPassword | quote }}
             {{- end }}
+            {{- if .Values.cassandraContactPoints }}
+            - name: CASSANDRA_CONTACT_POINTS
+              value: {{ .Values.cassandraContactPoints | quote }}
+            - name: CASSANDRA_PORT
+              value: {{ .Values.cassandraPort | quote }}
+            - name: CASSANDRA_KEYSPACE
+              value: {{ .Values.cassandraKeyspace | quote }}
+            - name: CASSANDRA_LOCAL_DC
+              value: {{ .Values.cassandraLocalDc | quote }}
+            {{- end }}
           {{- if .Values.h2DataMount }}
           volumeMounts:
             - name: h2-data

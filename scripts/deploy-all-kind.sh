@@ -38,6 +38,9 @@ echo ""
 bash "${SCRIPTS_DIR}/deploy-promtail-kind.sh"
 echo ""
 
+bash "${SCRIPTS_DIR}/set-secrets-kind-cluster.sh"
+echo ""
+
 echo "========================================"
 echo " All services deployed"
 echo "  Redis:      redis-cli -h 127.0.0.1 -p 30379"

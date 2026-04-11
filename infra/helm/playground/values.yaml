@@ -21,12 +21,12 @@ resources:
 
 livenessProbe:
   path: /actuator/health/liveness
-  initialDelaySeconds: 30
+  initialDelaySeconds: 90
   periodSeconds: 10
 
 readinessProbe:
   path: /actuator/health/readiness
-  initialDelaySeconds: 15
+  initialDelaySeconds: 60
   periodSeconds: 5
 
 ingress:

@@ -24,23 +24,29 @@ import org.springframework.kafka.config.TopicBuilder;
 public class KafkaTopicConfig {
 
     /**
-     * Fan-out jobs published by the detector: N=100 messages per event, one per
+     * Fan-out jobs published by the detector: N=20 messages per event, one per
      * Cassandra token range. Key: rangeIndex % 16.
      */
     @Bean
     public NewTopic notificationFanout() {
         return TopicBuilder.name(Topics.NOTIFICATION_FANOUT)
-                .partitions(16).replicas(1).build();
+                .partitions(16).replicas(1)
+                .config("retention.ms", "3600000") // 1 hour
+                .config("segment.bytes", "10485760") // 10MB — avoids 1GB pre-allocation in dev
+                .build();
     }
 
     /**
-     * Resolve jobs: batches of up to 1000 user_ids to look up push destinations.
+     * Resolve jobs: batches of up to 400 user_ids to look up push destinations.
      * Key: rangeIndex % 16.
      */
     @Bean
     public NewTopic notificationResolve() {
         return TopicBuilder.name(Topics.NOTIFICATION_RESOLVE)
-                .partitions(16).replicas(1).build();
+                .partitions(16).replicas(1)
+                .config("retention.ms", "3600000") // 1 hour
+                .config("segment.bytes", "10485760") // 10MB — avoids 1GB pre-allocation in dev
+                .build();
     }
 
     /**
@@ -50,14 +56,20 @@ public class KafkaTopicConfig {
     @Bean
     public NewTopic notificationSend() {
         return TopicBuilder.name(Topics.NOTIFICATION_SEND)
-                .partitions(16).replicas(1).build();
+                .partitions(16).replicas(1)
+                .config("retention.ms", "3600000") // 1 hour
+                .config("segment.bytes", "10485760") // 10MB — avoids 1GB pre-allocation in dev
+                .build();
     }
 
     /** Retry queue: transient failures with attempt counter. */
     @Bean
     public NewTopic notificationRetry() {
         return TopicBuilder.name(Topics.NOTIFICATION_RETRY)
-                .partitions(8).replicas(1).build();
+                .partitions(8).replicas(1)
+                .config("retention.ms", "3600000") // 1 hour
+                .config("segment.bytes", "10485760") // 10MB — avoids 1GB pre-allocation in dev
+                .build();
     }
 
 }

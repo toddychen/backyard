@@ -44,3 +44,9 @@ mysqlPort: "3306"
 mysqlDb: playground
 mysqlUser: playground
 mysqlPassword: playground-kind
+
+# Cassandra — connects to cassandra.cassandra (in-cluster service)
+cassandraContactPoints: cassandra.cassandra
+cassandraPort: "9042"
+cassandraKeyspace: notification
+cassandraLocalDc: datacenter1
