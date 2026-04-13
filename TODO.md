@@ -650,3 +650,10 @@ Add geospatial indexing to support location-based queries such as
   filter by radius)
 - Understand trade-offs between relational spatial (PostGIS) vs in-memory
   (Redis) vs search-engine (Elasticsearch) approaches
+
+---
+
+## Notification System — App Version Filtering
+
+Add `app_version` to the `push_destination` Cassandra schema and allow
+event triggers to filter by app version (e.g. only send to `>= 5.1.0`).

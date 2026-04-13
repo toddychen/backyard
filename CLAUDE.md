@@ -10,6 +10,10 @@ Examples:
 - `./mvnw spring-boot:run -Dspring-boot.run.profiles=dev`
 - `./mvnw test`
 
+## Ongoing Work
+
+See `TODO.md` at the repo root for future ideas. It acts as a reminder only.
+
 ## Services
 
 ### playground (`services/playground/`)

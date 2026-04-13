@@ -59,6 +59,15 @@
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
 
+        <!-- WebClient for reactive/streaming HTTP client (SSE consumption).
+             Spring Boot keeps Spring MVC as the server stack when both
+             starter-web and starter-webflux are present — WebClient is
+             used as an outbound client only, not as a server runtime. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-webflux</artifactId>
+        </dependency>
+
         <!-- Health check endpoints (/actuator/health) used by Kubernetes liveness/readiness probes -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
