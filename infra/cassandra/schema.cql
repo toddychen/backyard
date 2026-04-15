@@ -119,3 +119,92 @@ CREATE INDEX IF NOT EXISTS subscriptions_topic_idx
 CREATE INDEX IF NOT EXISTS subscriptions_expires_at_idx
     ON subscriptions (expires_at)
     USING 'sai';
+
+-- ============================================================
+-- Chat keyspace
+-- ============================================================
+-- Slack-like real-time chat: channels, threads, read state.
+-- Design principles:
+--   - Tables designed around queries (not entities)
+--   - Soft delete only (deleted BOOLEAN) — avoids tombstone accumulation
+--   - message_id is UUID v7 (time-ordered): high 48 bits = ms timestamp,
+--     sort order equals time order, timestamp is derivable without a
+--     separate created_at column
+--   - No time-bucketing: plain (channel_id, message_id) partition follows
+--     the Discord model — simple cursor pagination regardless of message
+--     sparsity; partition growth accepted as a trade-off
+--
+-- Java entity classes mirror this schema:
+--   services/playground/src/main/java/
+--     com/backyard/playground/data/persist/cassandra/chat/
+--
+-- To apply:
+--   cqlsh localhost 30942 -f infra/cassandra/schema.cql
+
+CREATE KEYSPACE IF NOT EXISTS chat
+    WITH replication = {
+        'class': 'SimpleStrategy',
+        'replication_factor': 3
+    }
+    AND durable_writes = true;
+
+USE chat;
+
+-- ------------------------------------------------------------
+-- messages_by_channel
+-- ------------------------------------------------------------
+-- Primary channel feed. One partition per channel_id.
+-- message_id is UUID v7 — high 48 bits encode the ms timestamp,
+-- so ORDER BY message_id DESC = newest-first without a separate
+-- created_at column.
+--
+-- Pagination cursor: message_id of the oldest message on the page.
+--   Initial load : SELECT * WHERE channel_id = ? LIMIT 50
+--   Older page   : SELECT * WHERE channel_id = ?
+--                    AND message_id < ? LIMIT 50
+--
+-- has_thread: one-way flag set to true on first reply, never unset.
+--   Lets the feed render a thread expand button without querying
+--   replies_by_message for every visible message.
+
+CREATE TABLE IF NOT EXISTS messages_by_channel (
+    channel_id  uuid,
+    message_id  uuid,       -- UUID v7: timestamp in high 48 bits
+    sender_id   uuid,
+    body        text,
+    deleted     boolean,
+    edited      boolean,
+    has_thread  boolean,
+    PRIMARY KEY (channel_id, message_id)
+) WITH CLUSTERING ORDER BY (message_id DESC)
+  AND comment = 'Channel message feed. Partition per channel, cursor = message_id.';
+
+-- ------------------------------------------------------------
+-- replies_by_message
+-- ------------------------------------------------------------
+-- Thread replies for a single parent message.
+-- Partition key: parent_id — all replies co-located.
+-- message_id is UUID v7 — ordered oldest-first (ASC) for natural
+-- thread reading order. Timestamp derivable from message_id.
+--
+-- Pagination cursor: message_id of the newest reply on the page.
+--   Initial load : SELECT * WHERE parent_id = ? LIMIT 50
+--   Newer page   : SELECT * WHERE parent_id = ?
+--                    AND message_id > ? LIMIT 50
+
+CREATE TABLE IF NOT EXISTS replies_by_message (
+    parent_id   uuid,
+    message_id  uuid,       -- UUID v7: timestamp in high 48 bits
+    channel_id  uuid,       -- denormalised from parent; avoids cross-table lookup on edit/delete
+    sender_id   uuid,
+    body        text,
+    deleted     boolean,
+    PRIMARY KEY ((parent_id), message_id)
+) WITH CLUSTERING ORDER BY (message_id ASC)
+  AND comment = 'Thread replies. Partition per parent message.';
+
+-- user_last_read is stored in MySQL channel_members.last_read_message_id.
+-- Rationale: read state is user×channel relational data with frequent
+-- in-place updates — a better fit for MySQL upserts than Cassandra
+-- append semantics. Redis would be the production choice for sub-ms
+-- latency; MySQL is sufficient for this demo.

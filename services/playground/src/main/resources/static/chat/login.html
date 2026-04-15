@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Backyard Chat — Sign In</title>
+  <link rel="stylesheet" href="/chat/style.css">
+</head>
+<body class="login-page">
+  <div class="login-container">
+    <div class="login-logo">💬</div>
+    <h1>Backyard Chat</h1>
+    <p class="login-subtitle">Choose your profile to continue</p>
+
+    <div id="user-grid" class="user-grid">
+      <div class="grid-status">Loading...</div>
+    </div>
+
+    <div class="login-divider"><span>or create a new user</span></div>
+
+    <form id="create-form" class="create-form">
+      <input type="text" id="new-name" placeholder="Your name" maxlength="32"
+             required autocomplete="off">
+      <button type="submit">Create &amp; Sign In</button>
+    </form>
+    <div id="create-error" class="error-msg hidden"></div>
+  </div>
+
+  <script src="/chat/utils.js"></script>
+  <script src="/chat/login.js"></script>
+</body>
+</html>

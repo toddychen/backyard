@@ -22,6 +22,10 @@ public class User {
     @Column(unique = true, nullable = false, length = 255)
     private String email;
 
+    /** Display name shown in chat — set via profile update, nullable until filled. */
+    @Column(length = 64)
+    private String name;
+
     /** BCrypt hash — never store plaintext. */
     @Column(name = "password_hash", nullable = false, length = 72)
     private String passwordHash;
@@ -43,6 +47,14 @@ public class User {
 
     public String getEmail() {
         return email;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
     }
 
     public String getPasswordHash() {

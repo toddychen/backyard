@@ -129,6 +129,20 @@
             <artifactId>spring-boot-starter-data-redis</artifactId>
         </dependency>
 
+        <!-- WebSocket + STOMP: Tomcat JSR-356 WebSocket support for real-time chat.
+             Coexists with Spring MVC on the same Tomcat instance — no conflict. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-websocket</artifactId>
+        </dependency>
+
+        <!-- UUID v7 generation: time-ordered UUIDs for Cassandra clustering keys.
+             High 48 bits = ms timestamp — sort order equals time order. -->
+        <dependency>
+            <groupId>com.fasterxml.uuid</groupId>
+            <artifactId>java-uuid-generator</artifactId>
+            <version>5.1.0</version>
+        </dependency>
 
         <!-- JPA + Hibernate: entity mapping and repository abstraction -->
         <dependency>

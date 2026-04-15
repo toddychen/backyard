@@ -13,6 +13,6 @@ echo "      GET http://localhost:2000/actuator/health/liveness"
 echo "      GET http://localhost:2000/actuator/health/readiness"
 echo ""
 
-./mvnw -f "${SERVICE_DIR}/pom.xml" spring-boot:run \
+./mvnw -f "${SERVICE_DIR}/pom.xml" process-resources spring-boot:run \
   -Dspring-boot.run.profiles=dev
   # -Dspring-boot.run.jvmArguments="-Djdk.httpclient.HttpClient.log=requests"  # JDK transport-level request logging
