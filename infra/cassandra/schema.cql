@@ -20,11 +20,16 @@
 -- SimpleStrategy is appropriate for a single-datacenter cluster
 -- (kind, dev, single-DC prod). For multi-DC production, replace
 -- with NetworkTopologyStrategy and per-DC replication factors.
+--
+-- RF=1: we run a single Cassandra node in the kind cluster, so
+-- replication_factor=1 is correct. Raise to 3 for a multi-node
+-- production cluster; LWT (IF NOT EXISTS) requires QUORUM which
+-- needs at least ceil(RF/2)+1 live replicas.
 
 CREATE KEYSPACE IF NOT EXISTS notification
     WITH replication = {
         'class': 'SimpleStrategy',
-        'replication_factor': 3
+        'replication_factor': 1  -- single-node kind cluster; raise to 3 for prod
     }
     AND durable_writes = true;
 
@@ -144,7 +149,7 @@ CREATE INDEX IF NOT EXISTS subscriptions_expires_at_idx
 CREATE KEYSPACE IF NOT EXISTS chat
     WITH replication = {
         'class': 'SimpleStrategy',
-        'replication_factor': 3
+        'replication_factor': 1  -- single-node kind cluster; raise to 3 for prod
     }
     AND durable_writes = true;
 
@@ -202,6 +207,23 @@ CREATE TABLE IF NOT EXISTS replies_by_message (
     PRIMARY KEY ((parent_id), message_id)
 ) WITH CLUSTERING ORDER BY (message_id ASC)
   AND comment = 'Thread replies. Partition per parent message.';
+-- edited boolean added by V001_add_edited_to_replies.cql
+
+-- ------------------------------------------------------------
+-- schema_migrations
+-- ------------------------------------------------------------
+-- Tracks which CQL migration files have been applied.
+-- Mirrors the Flyway / Liquibase pattern for relational DBs.
+-- The deploy script reads this table to skip already-applied
+-- migrations and inserts a row after each successful apply.
+--
+-- version    : filename of the migration (e.g. V001_add_edited.cql)
+-- applied_at : wall-clock time the migration was applied
+
+CREATE TABLE IF NOT EXISTS schema_migrations (
+    version     text PRIMARY KEY,
+    applied_at  timestamp
+) WITH comment = 'Applied CQL migration tracking.';
 
 -- user_last_read is stored in MySQL channel_members.last_read_message_id.
 -- Rationale: read state is user×channel relational data with frequent

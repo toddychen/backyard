@@ -12,6 +12,7 @@ import com.backyard.playground.data.model.chat.ChannelDTO;
 import com.backyard.playground.data.model.chat.ChatEvent;
 import com.backyard.playground.data.model.chat.ChatEventType;
 import com.backyard.playground.data.model.chat.MessageDTO;
+import com.backyard.playground.data.model.chat.ReplyDTO;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.ObjectMapper;
 
@@ -45,18 +46,28 @@ public class RedisPubServiceImpl implements RedisPubService {
     }
 
     @Override
-    public void publishChannelEvent(UUID channelId, ChatEventType type, MessageDTO dto) {
-        publishJson(CHANNEL_PREFIX + channelId, new ChatEvent(type, dto, null));
+    public void publishChannelEvent(UUID channelId, ChatEventType type, MessageDTO dto, String socketId) {
+        publishJson(CHANNEL_PREFIX + channelId, new ChatEvent(type, dto, null, null, socketId));
     }
 
     @Override
-    public void publishDmEvent(UUID recipientId, ChatEventType type, MessageDTO dto) {
-        publishJson(USER_PREFIX + recipientId, new ChatEvent(type, dto, null));
+    public void publishDmEvent(UUID recipientId, ChatEventType type, MessageDTO dto, String socketId) {
+        publishJson(USER_PREFIX + recipientId, new ChatEvent(type, dto, null, null, socketId));
+    }
+
+    @Override
+    public void publishChannelReplyEvent(UUID channelId, ChatEventType type, ReplyDTO dto, String socketId) {
+        publishJson(CHANNEL_PREFIX + channelId, new ChatEvent(type, null, dto, null, socketId));
+    }
+
+    @Override
+    public void publishDmReplyEvent(UUID recipientId, ChatEventType type, ReplyDTO dto, String socketId) {
+        publishJson(USER_PREFIX + recipientId, new ChatEvent(type, null, dto, null, socketId));
     }
 
     @Override
     public void publishUserControlEvent(UUID userId, ChatEventType type, ChannelDTO channel) {
-        publishJson(USER_PREFIX + userId, new ChatEvent(type, null, channel));
+        publishJson(USER_PREFIX + userId, new ChatEvent(type, null, null, channel));
     }
 
     private void publishJson(String topic, ChatEvent event) {

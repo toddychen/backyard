@@ -57,15 +57,29 @@ spec:
               # so replicas never share data and scaling up preserves existing data.
               subPathExpr: $(POD_NAME)
               {{- end }}
+            - name: cassandra-schema
+              mountPath: /cassandra-schema
+              readOnly: true
+            - name: cassandra-migrations
+              mountPath: /cassandra-migrations
+              readOnly: true
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
-      {{- if .Values.storage.dataHostPath }}
       volumes:
+        {{- if .Values.storage.dataHostPath }}
         - name: data
           hostPath:
             path: {{ .Values.storage.dataHostPath }}
             type: DirectoryOrCreate
-      {{- end }}
+        {{- end }}
+        - name: cassandra-schema
+          configMap:
+            name: cassandra-schema
+            defaultMode: 0755
+        - name: cassandra-migrations
+          configMap:
+            name: cassandra-migrations
+            defaultMode: 0644
   {{- if not .Values.storage.dataHostPath }}
   volumeClaimTemplates:
     - metadata:

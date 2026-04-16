@@ -5,6 +5,7 @@ import java.util.UUID;
 import com.backyard.playground.data.model.chat.ChannelDTO;
 import com.backyard.playground.data.model.chat.ChatEventType;
 import com.backyard.playground.data.model.chat.MessageDTO;
+import com.backyard.playground.data.model.chat.ReplyDTO;
 
 /**
  * Publishes chat events to Redis so every node can fan out
@@ -20,15 +21,31 @@ import com.backyard.playground.data.model.chat.MessageDTO;
  */
 public interface RedisPubService {
 
-    /** Publish a channel event (new/edit/delete) to all subscribers of that channel. */
-    void publishChannelEvent(UUID channelId, ChatEventType type, MessageDTO dto);
+    /**
+     * Publish a channel event (new/edit/delete) to all subscribers of that channel.
+     * {@code socketId} identifies the originating socket and is excluded from delivery.
+     */
+    void publishChannelEvent(UUID channelId, ChatEventType type, MessageDTO dto, String socketId);
 
     /**
      * Publish a DM event to the recipient's personal inbox topic.
      * The payload includes channelId so the client can render the sidebar
      * entry and pull history on demand.
+     * {@code socketId} identifies the originating socket and is excluded from delivery.
      */
-    void publishDmEvent(UUID recipientId, ChatEventType type, MessageDTO dto);
+    void publishDmEvent(UUID recipientId, ChatEventType type, MessageDTO dto, String socketId);
+
+    /**
+     * Publish a reply event (created/edited/deleted) to all subscribers of that channel.
+     * {@code socketId} identifies the originating socket and is excluded from delivery.
+     */
+    void publishChannelReplyEvent(UUID channelId, ChatEventType type, ReplyDTO dto, String socketId);
+
+    /**
+     * Publish a reply event to a DM recipient's personal inbox topic.
+     * {@code socketId} identifies the originating socket and is excluded from delivery.
+     */
+    void publishDmReplyEvent(UUID recipientId, ChatEventType type, ReplyDTO dto, String socketId);
 
     /**
      * Publish a control event (CHANNEL_JOINED / CHANNEL_LEFT) to the user's

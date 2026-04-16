@@ -657,3 +657,135 @@ Add geospatial indexing to support location-based queries such as
 
 Add `app_version` to the `push_destination` Cassandra schema and allow
 event triggers to filter by app version (e.g. only send to `>= 5.1.0`).
+
+---
+
+## Collaborative Editing System
+
+Build a real-time collaborative editing system similar to Google Docs or Figma,
+where multiple users can edit the same document simultaneously and see each
+other's changes instantly.
+
+**Core problem — conflict resolution:**
+Collaborative editing is fundamentally a distributed systems problem. When two
+users type at the same position at the same millisecond, their edits conflict.
+Two main approaches exist:
+
+- **OT (Operational Transformation)** — used by Google Docs. Each edit is an
+  operation (insert/delete at position). When two operations conflict, a
+  transformation function adjusts the second operation relative to the first.
+  Requires a central server to serialize and transform operations.
+- **CRDT (Conflict-free Replicated Data Type)** — used by Figma, Notion. Data
+  structure designed so that concurrent edits always merge deterministically
+  without a transformation step. Works peer-to-peer; no central coordinator needed.
+  Examples: Yjs, Automerge.
+
+**What to implement:**
+- **Document model** — a document is a sequence of characters or rich-text nodes,
+  each with a unique identity (position + author + timestamp, or a CRDT identity).
+- **Transport** — WebSocket per document session, broadcasting operations to all
+  connected editors. Reuse the existing WebSocket infrastructure.
+- **Server** — receives edit operations, applies conflict resolution, broadcasts
+  the resolved operation to all other clients. Persists the document state.
+- **Client** — applies incoming remote operations to the local editor state without
+  disrupting the user's current cursor position.
+
+**What needs to be done:**
+- Choose conflict resolution strategy (OT vs CRDT — start with OT for simplicity)
+- Define operation types: `insert(position, char)`, `delete(position)`,
+  `retain(count)` (Delta format, as used by Quill and Quilljs)
+- Implement server-side operation transformation and broadcasting
+- Build a minimal rich-text editor client (or integrate Quill / Slate.js)
+- Persist document snapshots + operation log to Cassandra (append-only operations,
+  periodic snapshots to avoid replaying the full history on load)
+- Handle presence: show other users' cursors and selections in real time
+
+**Goal:**
+- Understand the core distributed systems challenge behind collaborative editing
+- Learn OT or CRDT from first principles
+- Build a reusable real-time document sync pattern
+
+---
+
+## Redis Pub/Sub Internals
+
+Investigate how Redis implements its pub/sub feature internally — what data
+structures it uses, how message delivery works, and where its limits are.
+
+**Questions to answer:**
+- How does Redis route a published message to all subscribers? Does it maintain
+  a registry of subscriber connections per channel?
+- Is pub/sub delivery synchronous (inline with PUBLISH) or async (queued)?
+- What happens to a slow subscriber — does Redis queue messages for it or drop them?
+- How does `PSUBSCRIBE` (pattern subscribe) work internally vs `SUBSCRIBE`?
+- Where does Redis pub/sub break down — what are the throughput and latency limits
+  of a single Redis instance?
+- How does Redis Cluster handle pub/sub — are messages broadcast to all nodes or
+  routed to the owning shard?
+
+**Resources to explore:**
+- Redis source code — `pubsub.c` in the Redis GitHub repo
+- Redis documentation on pub/sub guarantees and cluster behaviour
+- Redis internals book / blog posts (e.g. antirez's writing on Redis design)
+- Benchmarks: measure throughput and latency of PUBLISH under increasing subscriber count
+
+**Goal:**
+- Understand the delivery model deeply enough to reason about failure modes
+  (dropped messages, slow consumers, cluster behaviour)
+- Inform the decision of when to migrate from Redis pub/sub to Kafka
+
+---
+
+## Kafka Internals — Message Queue Implementation
+
+Investigate how Kafka implements its message queue feature internally — the
+storage model, replication protocol, consumer group coordination, and where its
+guarantees come from.
+
+**Questions to answer:**
+
+- **Log storage** — Kafka stores messages in an append-only log on disk. How is
+  the log structured (segments, index files, `.log` vs `.index` vs `.timeindex`)?
+  How does Kafka find a message by offset without scanning the entire log?
+- **Partitioning** — how does Kafka distribute messages across partitions? How
+  does the producer choose which partition to write to (round-robin, key hash,
+  custom partitioner)?
+- **Replication** — how does the leader-follower replication protocol work? What
+  is the ISR (In-Sync Replica) set and how does Kafka use it to decide when a
+  write is committed? What happens when a follower falls behind?
+- **Consumer groups** — how does Kafka coordinate partition assignment across
+  consumers in a group? What is the Group Coordinator and how does rebalancing
+  work? What triggers a rebalance (new consumer joins, consumer dies, partition
+  count changes)?
+- **Offset management** — consumers track their own position (offset) rather than
+  the broker tracking it per-consumer. How are offsets committed — what is the
+  difference between auto-commit and manual commit? What happens if a consumer
+  crashes before committing?
+- **Delivery guarantees** — how does Kafka achieve at-least-once, at-most-once,
+  and exactly-once delivery? What is the idempotent producer and how does the
+  transactional API work?
+- **Retention and compaction** — Kafka retains messages for a configurable time
+  or size window. What is log compaction and how does it differ from time-based
+  retention? When would you use a compacted topic?
+- **Performance** — why is Kafka fast? How does sequential disk I/O, zero-copy
+  (`sendfile`), and batching contribute to its throughput?
+
+**Resources to explore:**
+- Kafka documentation — "Design" section covers the log, replication, and
+  consumer group protocol in depth
+- Kafka source code — `kafka/log/` for storage, `kafka/coordinator/` for group
+  coordination
+- "The Log" blog post by Jay Kreps (LinkedIn) — foundational reading on the
+  append-only log abstraction
+- Kafka: The Definitive Guide (O'Reilly) — chapters on internals and replication
+- KIP (Kafka Improvement Proposals) for exactly-once semantics (KIP-98)
+
+**Goal:**
+- Understand why Kafka's durability and throughput guarantees are fundamentally
+  stronger than Redis pub/sub
+- Reason about consumer group rebalancing as a failure mode in the WebSocket
+  fan-out topology (rebalance = brief gap in message delivery)
+- Know when compacted topics are the right choice (e.g. "latest state" topics
+  vs "event stream" topics)
+- Inform production Kafka configuration decisions (replication factor, ISR,
+  acks setting, retention policy)

@@ -26,6 +26,8 @@ public class ReplyDTO {
     private UUID channelId;
     private UUID senderId;
     private String body;
+    private boolean deleted;
+    private boolean edited;
 
     public static ReplyDTO from(ReplyByMessage entity) {
         ReplyDTO dto = new ReplyDTO();
@@ -34,6 +36,8 @@ public class ReplyDTO {
         dto.channelId = entity.getChannelId();
         dto.senderId = entity.getSenderId();
         dto.body = entity.getBody();
+        dto.deleted = entity.isDeleted();
+        dto.edited = entity.isEdited();
         return dto;
     }
 
@@ -75,5 +79,21 @@ public class ReplyDTO {
 
     public void setBody(String body) {
         this.body = body;
+    }
+
+    public boolean isDeleted() {
+        return deleted;
+    }
+
+    public void setDeleted(boolean deleted) {
+        this.deleted = deleted;
+    }
+
+    public boolean isEdited() {
+        return edited;
+    }
+
+    public void setEdited(boolean edited) {
+        this.edited = edited;
     }
 }

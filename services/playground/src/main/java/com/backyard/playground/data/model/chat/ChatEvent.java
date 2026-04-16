@@ -17,6 +17,12 @@ package com.backyard.playground.data.model.chat;
  */
 /**
  * {@code message} is set for MESSAGE_* events.
+ * {@code reply} is set for REPLY_* events.
  * {@code channel} is set for CHANNEL_JOINED / CHANNEL_LEFT control events.
  */
-public record ChatEvent(ChatEventType type, MessageDTO message, ChannelDTO channel) {}
+public record ChatEvent(
+        ChatEventType type,
+        MessageDTO message,
+        ReplyDTO reply,
+        ChannelDTO channel,
+        String socketId) {}

@@ -2,8 +2,8 @@ const API = '/api/v1';
 
 
 function signIn(userId, userName) {
-  localStorage.setItem('chatUserId', userId);
-  localStorage.setItem('chatUserName', userName);
+  sessionStorage.setItem('chatUserId', userId);
+  sessionStorage.setItem('chatUserName', userName);
   window.location.href = '/chat/app';
 }
 

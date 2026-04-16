@@ -183,6 +183,21 @@ applies to unbounded cross-partition scans, not to within-partition filtering.
 `channel_id` so that edit/delete operations can verify channel membership without
 fetching the parent message first.
 
+**Schema migrations — never backfill added columns** — Cassandra's `ALTER TABLE
+ADD` adds a column with no on-disk representation for existing rows; those rows
+read back as `null` for the new column. This is intentional and cheap. If you
+backfill existing rows (e.g. `UPDATE ... SET edited = false`), Cassandra writes a
+new cell for every row touched, inflating SSTables with data that is semantically
+identical to `null`. The correct pattern is:
+
+1. Add the column via a migration (`ALTER TABLE ... ADD col type`).
+2. Handle `null` in the application layer (e.g. treat `null` boolean as `false`).
+3. Only new writes set an explicit value.
+
+Corollary: new columns should always be nullable (no `NOT NULL` equivalent exists
+in CQL) and the application must tolerate `null` for any column added after the
+initial schema was deployed.
+
 ---
 
 ## Real-Time Transport

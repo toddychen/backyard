@@ -80,12 +80,10 @@ public class ChatService {
 
     /** Soft-delete a message. Only the original sender may delete. */
     public MessageDTO deleteMessage(UUID channelId, UUID messageId, UUID userId) {
-        requireMessageAuthor(channelId, messageId, userId);
+        MessageByChannel entity = requireMessageAuthor(channelId, messageId, userId);
         messageRepo.markDeleted(channelId, messageId);
-
-        MessageDTO dto = new MessageDTO();
-        dto.setChannelId(channelId);
-        dto.setMessageId(messageId);
+        MessageDTO dto = MessageDTO.from(entity);
+        dto.setDeleted(true);
         return dto;
     }
 
@@ -104,7 +102,13 @@ public class ChatService {
         // so the feed renders chronologically top-to-bottom.
         List<MessageByChannel> ordered = new ArrayList<>(rows);
         Collections.reverse(ordered);
-        return ordered.stream().map(MessageDTO::from).toList();
+        // Exclude deleted messages that have no thread — they are gone entirely.
+        // Deleted messages with a thread are kept as tombstones so the thread
+        // has an entry point in the channel feed.
+        return ordered.stream()
+                .filter(m -> !m.isDeleted() || m.isHasThread())
+                .map(MessageDTO::from)
+                .toList();
     }
 
     /** Send a thread reply. Validates that parentId belongs to parentChannelId. */
@@ -145,6 +149,7 @@ public class ChatService {
         dto.setChannelId(reply.getChannelId());
         dto.setSenderId(userId);
         dto.setBody(input.getBody());
+        dto.setEdited(true);
         return dto;
     }
 
@@ -158,16 +163,17 @@ public class ChatService {
         dto.setMessageId(messageId);
         dto.setChannelId(reply.getChannelId());
         dto.setSenderId(userId);
+        dto.setDeleted(true);
         return dto;
     }
 
-    private void requireMessageAuthor(UUID channelId, UUID messageId, UUID userId) {
-        UUID senderId = messageRepo.findByChannelIdAndMessageId(channelId, messageId)
-                .orElseThrow(() -> new NotFoundException("Message not found: " + messageId))
-                .getSenderId();
-        if (!senderId.equals(userId)) {
+    private MessageByChannel requireMessageAuthor(UUID channelId, UUID messageId, UUID userId) {
+        MessageByChannel entity = messageRepo.findByChannelIdAndMessageId(channelId, messageId)
+                .orElseThrow(() -> new NotFoundException("Message not found: " + messageId));
+        if (!entity.getSenderId().equals(userId)) {
             throw new ForbiddenException("Only the author may modify this message");
         }
+        return entity;
     }
 
     /**
@@ -191,7 +197,7 @@ public class ChatService {
         List<ReplyByMessage> rows = afterId == null
                 ? replyRepo.findReplies(parentId, limit)
                 : replyRepo.findRepliesAfter(parentId, afterId, limit);
-        return rows.stream().map(ReplyDTO::from).toList();
+        return rows.stream().filter(r -> !r.isDeleted()).map(ReplyDTO::from).toList();
     }
 
     /** Upsert read position for a user in a channel. */

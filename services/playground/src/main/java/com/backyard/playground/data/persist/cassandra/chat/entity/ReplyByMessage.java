@@ -46,6 +46,9 @@ public class ReplyByMessage {
     @Column("deleted")
     private boolean deleted;
 
+    @Column("edited")
+    private Boolean edited;
+
     public ReplyByMessage() {
     }
 
@@ -95,5 +98,13 @@ public class ReplyByMessage {
 
     public void setDeleted(boolean deleted) {
         this.deleted = deleted;
+    }
+
+    public boolean isEdited() {
+        return Boolean.TRUE.equals(edited);
+    }
+
+    public void setEdited(boolean edited) {
+        this.edited = edited;
     }
 }

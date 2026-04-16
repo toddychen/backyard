@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import com.backyard.playground.data.model.chat.ChannelDTO;
 import com.backyard.playground.data.model.chat.ChatEventType;
 import com.backyard.playground.data.model.chat.MessageDTO;
+import com.backyard.playground.data.model.chat.ReplyDTO;
 
 /**
  * No-op relay used on the {@code home} profile where Redis is not
@@ -22,13 +23,23 @@ public class RedisPubServiceNoOp implements RedisPubService {
     private static final Logger log = LoggerFactory.getLogger(RedisPubServiceNoOp.class);
 
     @Override
-    public void publishChannelEvent(UUID channelId, ChatEventType type, MessageDTO dto) {
+    public void publishChannelEvent(UUID channelId, ChatEventType type, MessageDTO dto, String socketId) {
         log.debug("RedisPubServiceNoOp: channel event dropped (channelId={} type={})", channelId, type);
     }
 
     @Override
-    public void publishDmEvent(UUID recipientId, ChatEventType type, MessageDTO dto) {
+    public void publishDmEvent(UUID recipientId, ChatEventType type, MessageDTO dto, String socketId) {
         log.debug("RedisPubServiceNoOp: DM event dropped (recipientId={} type={})", recipientId, type);
+    }
+
+    @Override
+    public void publishChannelReplyEvent(UUID channelId, ChatEventType type, ReplyDTO dto, String socketId) {
+        log.debug("RedisPubServiceNoOp: channel reply event dropped (channelId={} type={})", channelId, type);
+    }
+
+    @Override
+    public void publishDmReplyEvent(UUID recipientId, ChatEventType type, ReplyDTO dto, String socketId) {
+        log.debug("RedisPubServiceNoOp: DM reply event dropped (recipientId={} type={})", recipientId, type);
     }
 
     @Override

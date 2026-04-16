@@ -32,6 +32,7 @@ import org.springframework.web.socket.server.HandshakeInterceptor;
 public class WebSocketConfig implements WebSocketConfigurer {
 
     private static final String USER_ID_ATTR = "X-Mock-User-Id";
+    private static final String SOCKET_ID_ATTR = "X-Socket-Id";
 
     private final ChatWebSocketHandler chatHandler;
 
@@ -69,9 +70,9 @@ public class WebSocketConfig implements WebSocketConfigurer {
             if (query != null) {
                 for (String param : query.split("&")) {
                     String[] kv = param.split("=", 2);
-                    if (kv.length == 2 && "userId".equals(kv[0])) {
-                        attributes.put(USER_ID_ATTR, kv[1]);
-                        break;
+                    if (kv.length == 2) {
+                        if ("userId".equals(kv[0])) attributes.put(USER_ID_ATTR, kv[1]);
+                        else if ("socketId".equals(kv[0])) attributes.put(SOCKET_ID_ATTR, kv[1]);
                     }
                 }
             }

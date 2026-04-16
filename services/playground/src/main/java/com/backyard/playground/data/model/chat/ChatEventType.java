@@ -5,6 +5,9 @@ public enum ChatEventType {
     MESSAGE_CREATED,
     MESSAGE_EDITED,
     MESSAGE_DELETED,
+    REPLY_CREATED,
+    REPLY_EDITED,
+    REPLY_DELETED,
     /** Sent to the user's personal inbox when they join a channel. */
     CHANNEL_JOINED,
     /** Sent to the user's personal inbox when they leave a channel. */

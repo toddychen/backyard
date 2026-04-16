@@ -210,18 +210,19 @@ public class ChatController {
     @ResponseStatus(HttpStatus.CREATED)
     public MessageDTO sendMessage(
             @RequestHeader("X-Mock-User-Id") UUID userId,
+            @RequestHeader(value = "X-Socket-Id", required = false) String socketId,
             @PathVariable UUID channelId,
             @RequestBody SendMessageInputDTO input) {
         ChannelType type = channelService.getChannelType(channelId);
         if (type == ChannelType.DM) {
             UUID recipientId = channelService.requireMemberAndGetDmRecipient(channelId, userId);
             MessageDTO dto = chatService.sendMessage(channelId, userId, input);
-            pubService.publishDmEvent(recipientId, ChatEventType.MESSAGE_CREATED, dto);
+            pubService.publishDmEvent(recipientId, ChatEventType.MESSAGE_CREATED, dto, socketId);
             return dto;
         }
         channelService.requireMember(channelId, userId);
         MessageDTO dto = chatService.sendMessage(channelId, userId, input);
-        pubService.publishChannelEvent(channelId, ChatEventType.MESSAGE_CREATED, dto);
+        pubService.publishChannelEvent(channelId, ChatEventType.MESSAGE_CREATED, dto, socketId);
         return dto;
     }
 
@@ -229,12 +230,20 @@ public class ChatController {
     @PatchMapping(value = "/channels/{channelId}/messages/{messageId}", version = "1+")
     public MessageDTO editMessage(
             @RequestHeader("X-Mock-User-Id") UUID userId,
+            @RequestHeader(value = "X-Socket-Id", required = false) String socketId,
             @PathVariable UUID channelId,
             @PathVariable UUID messageId,
             @RequestBody EditMessageInputDTO input) {
+        ChannelType editType = channelService.getChannelType(channelId);
+        if (editType == ChannelType.DM) {
+            UUID recipientId = channelService.requireMemberAndGetDmRecipient(channelId, userId);
+            MessageDTO dto = chatService.editMessage(channelId, messageId, userId, input);
+            pubService.publishDmEvent(recipientId, ChatEventType.MESSAGE_EDITED, dto, socketId);
+            return dto;
+        }
         channelService.requireMember(channelId, userId);
         MessageDTO dto = chatService.editMessage(channelId, messageId, userId, input);
-        pubService.publishChannelEvent(channelId, ChatEventType.MESSAGE_EDITED, dto);
+        pubService.publishChannelEvent(channelId, ChatEventType.MESSAGE_EDITED, dto, socketId);
         return dto;
     }
 
@@ -242,11 +251,19 @@ public class ChatController {
     @DeleteMapping(value = "/channels/{channelId}/messages/{messageId}", version = "1+")
     public MessageDTO deleteMessage(
             @RequestHeader("X-Mock-User-Id") UUID userId,
+            @RequestHeader(value = "X-Socket-Id", required = false) String socketId,
             @PathVariable UUID channelId,
             @PathVariable UUID messageId) {
+        ChannelType deleteType = channelService.getChannelType(channelId);
+        if (deleteType == ChannelType.DM) {
+            UUID recipientId = channelService.requireMemberAndGetDmRecipient(channelId, userId);
+            MessageDTO dto = chatService.deleteMessage(channelId, messageId, userId);
+            pubService.publishDmEvent(recipientId, ChatEventType.MESSAGE_DELETED, dto, socketId);
+            return dto;
+        }
         channelService.requireMember(channelId, userId);
         MessageDTO dto = chatService.deleteMessage(channelId, messageId, userId);
-        pubService.publishChannelEvent(channelId, ChatEventType.MESSAGE_DELETED, dto);
+        pubService.publishChannelEvent(channelId, ChatEventType.MESSAGE_DELETED, dto, socketId);
         return dto;
     }
 
@@ -257,33 +274,53 @@ public class ChatController {
     @ResponseStatus(HttpStatus.CREATED)
     public ReplyDTO sendReply(
             @RequestHeader("X-Mock-User-Id") UUID userId,
+            @RequestHeader(value = "X-Socket-Id", required = false) String socketId,
             @PathVariable UUID parentId,
             @RequestParam UUID parentChannelId,
             @RequestBody SendReplyInputDTO input) {
         channelService.requireMember(parentChannelId, userId);
-        // TODO: publish reply to each thread follower's user inbox once
-        // thread_followers table is in place. Sender gets the reply from
-        // the 201 response; followers will be notified via publishDmEvent.
-        return chatService.sendReply(parentChannelId, parentId, userId, input);
+        ReplyDTO dto = chatService.sendReply(parentChannelId, parentId, userId, input);
+        publishReplyEvent(parentChannelId, userId, ChatEventType.REPLY_CREATED, dto, socketId);
+        return dto;
     }
 
     @Operation(summary = "Edit a reply body")
     @PatchMapping(value = "/messages/{parentId}/replies/{replyId}", version = "1+")
     public ReplyDTO editReply(
             @RequestHeader("X-Mock-User-Id") UUID userId,
+            @RequestHeader(value = "X-Socket-Id", required = false) String socketId,
             @PathVariable UUID parentId,
             @PathVariable UUID replyId,
             @RequestBody EditMessageInputDTO input) {
-        return chatService.editReply(parentId, replyId, userId, input);
+        ReplyDTO dto = chatService.editReply(parentId, replyId, userId, input);
+        publishReplyEvent(dto.getChannelId(), userId, ChatEventType.REPLY_EDITED, dto, socketId);
+        return dto;
     }
 
     @Operation(summary = "Soft-delete a reply")
     @DeleteMapping(value = "/messages/{parentId}/replies/{replyId}", version = "1+")
     public ReplyDTO deleteReply(
             @RequestHeader("X-Mock-User-Id") UUID userId,
+            @RequestHeader(value = "X-Socket-Id", required = false) String socketId,
             @PathVariable UUID parentId,
             @PathVariable UUID replyId) {
-        return chatService.deleteReply(parentId, replyId, userId);
+        ReplyDTO dto = chatService.deleteReply(parentId, replyId, userId);
+        publishReplyEvent(dto.getChannelId(), userId, ChatEventType.REPLY_DELETED, dto, socketId);
+        return dto;
+    }
+
+    /**
+     * Routes a reply event to the channel topic or the DM recipient's inbox,
+     * mirroring the message-event routing pattern.
+     */
+    private void publishReplyEvent(
+            UUID channelId, UUID userId, ChatEventType type, ReplyDTO dto, String socketId) {
+        if (channelService.getChannelType(channelId) == ChannelType.DM) {
+            UUID recipientId = channelService.requireMemberAndGetDmRecipient(channelId, userId);
+            pubService.publishDmReplyEvent(recipientId, type, dto, socketId);
+        } else {
+            pubService.publishChannelReplyEvent(channelId, type, dto, socketId);
+        }
     }
 
     @Operation(summary = "Load thread replies")

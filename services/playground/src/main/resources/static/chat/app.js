@@ -4,28 +4,40 @@ const API = '/api/v1';
 const state = {
   userId: null,
   userName: null,
-  users: {},          // id → { id, name }
-  channels: [],       // ChannelDTO[]
-  dms: [],            // ChannelDTO[]
+  users: {},              // id → { id, name }
+  channels: [],           // ChannelDTO[]
+  dms: [],                // ChannelDTO[]
   activeChannelId: null,
   lastRenderedMessageId: null,
-  ws: null
+  messagesById: {},       // messageId → MessageDTO (for thread parent lookup)
+  activeThreadParentId: null,
+  pendingDeleteId: null,          // message delete
+  pendingReplyDeleteId: null,     // reply delete
+  pendingReplyDeleteParentId: null,
+  ws: null,
+  socketId: null
 };
 
 // ── Auth guard ────────────────────────────────────────────────────────────────
-state.userId = localStorage.getItem('chatUserId');
-state.userName = localStorage.getItem('chatUserName');
+state.userId = sessionStorage.getItem('chatUserId');
+state.userName = sessionStorage.getItem('chatUserName');
 if (!state.userId) {
   window.location.href = '/chat/login';
 }
 
-// ── API helper (attaches X-Mock-User-Id to every request) ────────────────────
+// Unique ID for this socket connection — scoped to this tab, generated once.
+// Used to skip pushing events back to the originating socket while still
+// delivering to other sockets of the same user (e.g. a second tab).
+state.socketId = crypto.randomUUID();
+
+// ── API helper (attaches X-Mock-User-Id and X-Socket-Id to every request) ────
 async function api(path, options = {}) {
   const res = await fetch(`${API}${path}`, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
       'X-Mock-User-Id': state.userId,
+      'X-Socket-Id': state.socketId,
       ...(options.headers || {})
     }
   });
@@ -123,11 +135,26 @@ function renderNavList(listId, items, labelFn) {
 function msgHtml(msg) {
   const name = resolvedName(msg.senderId);
   const color = avatarColor(msg.senderId);
+  const isOwn = msg.senderId === state.userId;
   const body = msg.deleted
     ? '<em>This message was deleted.</em>'
     : escapeHtml(msg.body || '');
+  const ownBtns = isOwn && !msg.deleted
+    ? '<button class="msg-action-btn edit-btn" title="Edit">✏️</button>' +
+      '<button class="msg-action-btn delete-btn" title="Delete">🗑️</button>'
+    : '';
+  const actions = !msg.deleted ? `
+    <div class="msg-actions">
+      ${ownBtns}
+      <button class="msg-action-btn reply-btn" title="Reply in thread">💬</button>
+    </div>` : '';
+  // data-body stores the raw body for restoring on edit cancel
+  const bodyAttr = !msg.deleted ? ` data-body="${escapeHtml(msg.body || '')}"` : '';
+  const threadIndicator = msg.hasThread
+    ? '<button class="thread-indicator">💬 View thread</button>' : '';
   return `
-    <div class="message-group" data-id="${msg.messageId}">
+    <div class="message-group" data-id="${msg.messageId}"${bodyAttr}>
+      ${actions}
       <div class="avatar msg-avatar" style="background:${color}">${initials(name)}</div>
       <div class="msg-content">
         <div class="msg-header">
@@ -135,11 +162,13 @@ function msgHtml(msg) {
           <span class="msg-time">${formatTime(msg.messageId)}</span>
         </div>
         <div class="msg-body${msg.deleted ? ' deleted' : ''}">${body}</div>
+        ${threadIndicator}
       </div>
     </div>`;
 }
 
 function renderMessages(messages) {
+  state.messagesById = {};
   const list = document.getElementById('message-list');
   if (!messages.length) {
     list.innerHTML = '<div class="no-messages" style="padding:32px;color:#9b9c9e;text-align:center">No messages yet — say hello!</div>';
@@ -148,6 +177,7 @@ function renderMessages(messages) {
   let html = '';
   let lastDay = null;
   for (const msg of messages) {
+    state.messagesById[msg.messageId] = msg;
     const day = formatDay(msg.messageId);
     if (day !== lastDay) {
       html += `<div class="day-divider"><span>${day}</span></div>`;
@@ -161,6 +191,7 @@ function renderMessages(messages) {
 }
 
 function appendMessage(msg) {
+  state.messagesById[msg.messageId] = msg;
   const list = document.getElementById('message-list');
   // Remove "no messages" placeholder if present
   const placeholder = list.querySelector('.no-messages');
@@ -170,18 +201,339 @@ function appendMessage(msg) {
   state.lastRenderedMessageId = msg.messageId;
 }
 
-function patchMessage(msg) {
+// Apply an edit from a WS MESSAGE_EDITED event (or directly after REST PATCH)
+function applyEdit(msg) {
   const el = document.querySelector(`.message-group[data-id="${msg.messageId}"]`);
   if (!el) return;
+  cancelEdit(el); // no-op if not editing
   const body = el.querySelector('.msg-body');
-  if (msg.deleted) {
+  body.textContent = msg.body;
+  body.classList.remove('deleted');
+  el.dataset.body = msg.body;
+  if (state.messagesById[msg.messageId]) state.messagesById[msg.messageId].body = msg.body;
+}
+
+// Apply a delete: tombstone if has_thread, otherwise animate-and-remove
+function applyDelete(msg) {
+  const el = document.querySelector(`.message-group[data-id="${msg.messageId}"]`);
+  if (!el) return;
+  if (state.messagesById[msg.messageId]) state.messagesById[msg.messageId].deleted = true;
+  if (msg.hasThread) {
+    const body = el.querySelector('.msg-body');
     body.innerHTML = '<em>This message was deleted.</em>';
     body.classList.add('deleted');
-  } else if (msg.body != null) {
-    body.textContent = msg.body;
-    body.classList.remove('deleted');
+    el.querySelector('.msg-actions')?.remove();
+    delete el.dataset.body;
+  } else {
+    el.classList.add('msg-deleting');
+    setTimeout(() => {
+      el.style.maxHeight = el.offsetHeight + 'px';
+      el.style.overflow = 'hidden';
+      el.style.transition = 'max-height 0.2s ease-out, opacity 0.2s ease-out, margin-bottom 0.2s ease-out';
+      requestAnimationFrame(() => {
+        el.style.maxHeight = '0';
+        el.style.opacity = '0';
+        el.style.marginBottom = '0';
+      });
+      el.addEventListener('transitionend', () => el.remove(), { once: true });
+    }, 350);
   }
 }
+
+// ── Edit flow ─────────────────────────────────────────────────────────────────
+function startEdit(groupEl) {
+  if (groupEl.querySelector('.msg-edit-area')) return; // already editing
+  const originalBody = groupEl.dataset.body || '';
+  const bodyEl = groupEl.querySelector('.msg-body');
+  bodyEl.innerHTML = `
+    <div class="msg-edit-area">
+      <textarea class="edit-textarea" maxlength="4000">${escapeHtml(originalBody)}</textarea>
+      <div class="msg-edit-btns">
+        <button class="msg-edit-save">Save</button>
+        <button class="msg-edit-cancel">Cancel</button>
+      </div>
+    </div>`;
+  const ta = bodyEl.querySelector('.edit-textarea');
+  ta.focus();
+  ta.setSelectionRange(ta.value.length, ta.value.length);
+}
+
+function cancelEdit(groupEl) {
+  const bodyEl = groupEl.querySelector('.msg-body');
+  if (!bodyEl?.querySelector('.msg-edit-area')) return;
+  const originalBody = groupEl.dataset.body || '';
+  bodyEl.innerHTML = escapeHtml(originalBody);
+  bodyEl.classList.remove('deleted');
+}
+
+async function submitEdit(groupEl) {
+  const ta = groupEl.querySelector('.edit-textarea');
+  const newBody = ta.value.trim();
+  if (!newBody) return;
+  const messageId = groupEl.dataset.id;
+  try {
+    const dto = await api(`/chat/channels/${state.activeChannelId}/messages/${messageId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ body: newBody })
+    });
+    applyEdit(dto);
+  } catch (err) {
+    console.error('Edit failed:', err);
+    cancelEdit(groupEl);
+  }
+}
+
+// ── Message list click delegation ────────────────────────────────────────────
+document.getElementById('message-list').addEventListener('click', e => {
+  const group = e.target.closest('.message-group');
+  if (!group) return;
+  if (e.target.closest('.edit-btn')) {
+    startEdit(group);
+  } else if (e.target.closest('.delete-btn')) {
+    state.pendingDeleteId = group.dataset.id;
+    document.getElementById('delete-confirm-modal').classList.remove('hidden');
+  } else if (e.target.closest('.msg-edit-save')) {
+    submitEdit(group);
+  } else if (e.target.closest('.msg-edit-cancel')) {
+    cancelEdit(group);
+  } else if (e.target.closest('.reply-btn') || e.target.closest('.thread-indicator')) {
+    const msg = state.messagesById[group.dataset.id];
+    if (msg) openThread(msg);
+  }
+});
+
+document.getElementById('cancel-delete-btn').addEventListener('click', () => {
+  state.pendingDeleteId = null;
+  state.pendingReplyDeleteId = null;
+  state.pendingReplyDeleteParentId = null;
+  document.getElementById('delete-confirm-modal').classList.add('hidden');
+});
+
+document.getElementById('confirm-delete-btn').addEventListener('click', async () => {
+  document.getElementById('delete-confirm-modal').classList.add('hidden');
+
+  if (state.pendingReplyDeleteId) {
+    const replyId = state.pendingReplyDeleteId;
+    const parentId = state.pendingReplyDeleteParentId;
+    state.pendingReplyDeleteId = null;
+    state.pendingReplyDeleteParentId = null;
+    try {
+      const dto = await api(`/chat/messages/${parentId}/replies/${replyId}`, { method: 'DELETE' });
+      applyReplyDelete(dto);
+    } catch (err) {
+      console.error('Reply delete failed:', err);
+    }
+    return;
+  }
+
+  const messageId = state.pendingDeleteId;
+  state.pendingDeleteId = null;
+  if (!messageId) return;
+  try {
+    const dto = await api(`/chat/channels/${state.activeChannelId}/messages/${messageId}`, {
+      method: 'DELETE'
+    });
+    applyDelete(dto);
+  } catch (err) {
+    console.error('Delete failed:', err);
+  }
+});
+
+// ── Thread panel ──────────────────────────────────────────────────────────────
+function replyHtml(reply) {
+  const name = resolvedName(reply.senderId);
+  const color = avatarColor(reply.senderId);
+  const isOwn = reply.senderId === state.userId;
+  const body = reply.deleted
+    ? '<em>This reply was deleted.</em>'
+    : escapeHtml(reply.body || '');
+  const ownBtns = isOwn && !reply.deleted
+    ? '<button class="msg-action-btn edit-btn" title="Edit">✏️</button>' +
+      '<button class="msg-action-btn delete-btn" title="Delete">🗑️</button>'
+    : '';
+  const actions = ownBtns ? `<div class="msg-actions">${ownBtns}</div>` : '';
+  const bodyAttr = !reply.deleted ? ` data-body="${escapeHtml(reply.body || '')}"` : '';
+  return `
+    <div class="message-group" data-id="${reply.messageId}" data-parent-id="${reply.parentId}"${bodyAttr}>
+      ${actions}
+      <div class="avatar msg-avatar" style="background:${color}">${initials(name)}</div>
+      <div class="msg-content">
+        <div class="msg-header">
+          <span class="msg-sender">${escapeHtml(name)}</span>
+          <span class="msg-time">${formatTime(reply.messageId)}</span>
+          ${reply.edited ? '<span class="msg-edited">(edited)</span>' : ''}
+        </div>
+        <div class="msg-body${reply.deleted ? ' deleted' : ''}">${body}</div>
+      </div>
+    </div>`;
+}
+
+function openThread(msg) {
+  state.activeThreadParentId = msg.messageId;
+
+  const parentEl = document.getElementById('thread-parent');
+  parentEl.innerHTML = msgHtml(msg);
+  parentEl.querySelector('.msg-actions')?.remove();
+  parentEl.querySelector('.thread-indicator')?.remove();
+
+  document.getElementById('thread-reply-list').innerHTML =
+    '<div style="padding:16px;color:#9b9c9e;text-align:center;font-size:13px">Loading…</div>';
+
+  // Case 1: if at bottom, snap back to bottom after reflow so the last message
+  // stays pinned. Case 2: do nothing — browser overflow-anchor keeps the top stable.
+  const list = document.getElementById('message-list');
+  const wasAtBottom = list.scrollTop + list.clientHeight >= list.scrollHeight - 8;
+
+  document.getElementById('thread-panel').classList.remove('hidden');
+  document.getElementById('reply-input').focus();
+
+  if (wasAtBottom) {
+    requestAnimationFrame(() => { list.scrollTop = list.scrollHeight; });
+  }
+
+  loadReplies();
+}
+
+function closeThread() {
+  const list = document.getElementById('message-list');
+  const wasAtBottom = list.scrollTop + list.clientHeight >= list.scrollHeight - 8;
+
+  state.activeThreadParentId = null;
+  document.getElementById('thread-panel').classList.add('hidden');
+  document.getElementById('thread-reply-list').innerHTML = '';
+  document.getElementById('thread-parent').innerHTML = '';
+
+  if (wasAtBottom) {
+    requestAnimationFrame(() => { list.scrollTop = list.scrollHeight; });
+  }
+}
+
+async function loadReplies() {
+  const parentId = state.activeThreadParentId;
+  if (!parentId) return;
+  const replies = await api(
+    `/chat/messages/${parentId}/replies?parentChannelId=${state.activeChannelId}&limit=50`
+  );
+  if (state.activeThreadParentId !== parentId) return; // thread switched while loading
+  await resolveUsers(replies.map(r => r.senderId));
+  const list = document.getElementById('thread-reply-list');
+  if (!replies.length) {
+    list.innerHTML = '<div style="padding:16px;color:#9b9c9e;text-align:center;font-size:13px">No replies yet.</div>';
+    return;
+  }
+  list.innerHTML = replies.map(replyHtml).join('');
+  list.scrollTop = list.scrollHeight;
+}
+
+function appendReply(reply) {
+  const list = document.getElementById('thread-reply-list');
+  const placeholder = list.querySelector('div');
+  if (placeholder && !placeholder.classList.contains('message-group')) placeholder.remove();
+  list.insertAdjacentHTML('beforeend', replyHtml(reply));
+  list.scrollTop = list.scrollHeight;
+
+  // Ensure the parent message in the channel feed shows a thread indicator
+  showThreadIndicator(reply.parentId);
+}
+
+/** Add a "View thread" button to a channel-feed message if not already present. */
+function showThreadIndicator(messageId) {
+  const el = document.querySelector(`#message-list .message-group[data-id="${messageId}"]`);
+  if (!el) return;
+  if (!el.querySelector('.thread-indicator')) {
+    el.querySelector('.msg-content')
+      ?.insertAdjacentHTML('beforeend', '<button class="thread-indicator">💬 View thread</button>');
+  }
+  if (state.messagesById[messageId]) state.messagesById[messageId].hasThread = true;
+}
+
+function applyReplyEdit(reply) {
+  const el = document.querySelector(`#thread-reply-list .message-group[data-id="${reply.messageId}"]`);
+  if (!el) return;
+  cancelEdit(el);
+  const body = el.querySelector('.msg-body');
+  body.textContent = reply.body;
+  body.classList.remove('deleted');
+  el.dataset.body = reply.body;
+  if (!el.querySelector('.msg-edited')) {
+    el.querySelector('.msg-time')
+      ?.insertAdjacentHTML('afterend', '<span class="msg-edited">(edited)</span>');
+  }
+}
+
+function applyReplyDelete(reply) {
+  const el = document.querySelector(`#thread-reply-list .message-group[data-id="${reply.messageId}"]`);
+  if (!el) return;
+  // Replies can't have sub-threads — animate and remove
+  el.classList.add('msg-deleting');
+  setTimeout(() => {
+    el.style.maxHeight = el.offsetHeight + 'px';
+    el.style.overflow = 'hidden';
+    el.style.transition = 'max-height 0.2s ease-out, opacity 0.2s ease-out, margin-bottom 0.2s ease-out';
+    requestAnimationFrame(() => {
+      el.style.maxHeight = '0';
+      el.style.opacity = '0';
+      el.style.marginBottom = '0';
+    });
+    el.addEventListener('transitionend', () => el.remove(), { once: true });
+  }, 350);
+}
+
+// Thread reply edit flow (reuses cancelEdit / startEdit from message edit flow)
+async function submitReplyEdit(groupEl) {
+  const ta = groupEl.querySelector('.edit-textarea');
+  const newBody = ta.value.trim();
+  if (!newBody) return;
+  const replyId = groupEl.dataset.id;
+  const parentId = groupEl.dataset.parentId;
+  try {
+    const dto = await api(`/chat/messages/${parentId}/replies/${replyId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ body: newBody })
+    });
+    applyReplyEdit(dto);
+  } catch (err) {
+    console.error('Reply edit failed:', err);
+    cancelEdit(groupEl);
+  }
+}
+
+// Thread reply list click delegation
+document.getElementById('thread-reply-list').addEventListener('click', e => {
+  const group = e.target.closest('.message-group');
+  if (!group) return;
+  if (e.target.closest('.edit-btn')) {
+    startEdit(group);
+  } else if (e.target.closest('.delete-btn')) {
+    state.pendingReplyDeleteId = group.dataset.id;
+    state.pendingReplyDeleteParentId = group.dataset.parentId;
+    document.getElementById('delete-confirm-modal').classList.remove('hidden');
+  } else if (e.target.closest('.msg-edit-save')) {
+    submitReplyEdit(group);
+  } else if (e.target.closest('.msg-edit-cancel')) {
+    cancelEdit(group);
+  }
+});
+
+document.getElementById('close-thread-btn').addEventListener('click', closeThread);
+
+document.getElementById('reply-form').addEventListener('submit', async e => {
+  e.preventDefault();
+  const input = document.getElementById('reply-input');
+  const body = input.value.trim();
+  if (!body || !state.activeThreadParentId) return;
+  input.value = '';
+  try {
+    const dto = await api(
+      `/chat/messages/${state.activeThreadParentId}/replies?parentChannelId=${state.activeChannelId}`,
+      { method: 'POST', body: JSON.stringify({ body }) }
+    );
+    appendReply(dto);
+  } catch (err) {
+    console.error('Reply send failed:', err);
+    input.value = body;
+  }
+});
 
 // ── Read position ─────────────────────────────────────────────────────────────
 function markCurrentChannelRead() {
@@ -198,6 +550,7 @@ function markCurrentChannelRead() {
 // ── Channel selection ─────────────────────────────────────────────────────────
 async function selectChannel(channelId) {
   markCurrentChannelRead();
+  closeThread();
   state.activeChannelId = channelId;
   state.lastRenderedMessageId = null;
   const channel = [...state.channels, ...state.dms].find(c => c.id === channelId);
@@ -238,7 +591,7 @@ async function loadChannels() {
 // ── WebSocket ─────────────────────────────────────────────────────────────────
 function connectWebSocket() {
   const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-  const ws = new WebSocket(`${proto}//${location.host}/ws?userId=${state.userId}`);
+  const ws = new WebSocket(`${proto}//${location.host}/ws?userId=${state.userId}&socketId=${state.socketId}`);
   state.ws = ws;
 
   ws.onopen = () => console.log('[WS] connected');
@@ -251,8 +604,8 @@ function connectWebSocket() {
   ws.onerror = err => console.error('[WS] error', err);
 
   ws.onmessage = async e => {
-    const { type, message, channel } = JSON.parse(e.data);
-    const payload = message || channel;
+    const { type, message, reply, channel } = JSON.parse(e.data);
+    const payload = message || reply || channel;
     const isActive = payload?.channelId === state.activeChannelId;
 
     if (type === 'MESSAGE_CREATED') {
@@ -273,8 +626,28 @@ function connectWebSocket() {
       }
       renderSidebar();
 
-    } else if (type === 'MESSAGE_EDITED' || type === 'MESSAGE_DELETED') {
-      if (isActive) patchMessage(payload);
+    } else if (type === 'MESSAGE_EDITED') {
+      if (isActive) applyEdit(payload);
+    } else if (type === 'MESSAGE_DELETED') {
+      if (isActive) applyDelete(payload);
+
+    } else if (type === 'REPLY_CREATED') {
+      if (isActive) {
+        // Update thread indicator on the parent message in the channel feed
+        showThreadIndicator(payload.parentId);
+        // Append to thread panel if it's open for this parent
+        if (state.activeThreadParentId === payload.parentId) {
+          // Avoid duplicate if sender already appended from REST response
+          if (!document.querySelector(`#thread-reply-list .message-group[data-id="${payload.messageId}"]`)) {
+            await resolveUsers([payload.senderId]);
+            appendReply(payload);
+          }
+        }
+      }
+    } else if (type === 'REPLY_EDITED') {
+      if (isActive && state.activeThreadParentId === payload.parentId) applyReplyEdit(payload);
+    } else if (type === 'REPLY_DELETED') {
+      if (isActive && state.activeThreadParentId === payload.parentId) applyReplyDelete(payload);
 
     } else if (type === 'CHANNEL_JOINED') {
       // Server confirmed subscription — refresh sidebar so new channel appears.
@@ -423,8 +796,8 @@ document.getElementById('cancel-dm-btn').addEventListener('click', () => {
 // ── Sign out ──────────────────────────────────────────────────────────────────
 document.getElementById('sign-out-btn').addEventListener('click', () => {
   if (state.ws) state.ws.close();
-  localStorage.removeItem('chatUserId');
-  localStorage.removeItem('chatUserName');
+  sessionStorage.removeItem('chatUserId');
+  sessionStorage.removeItem('chatUserName');
   window.location.href = '/chat/login';
 });
 

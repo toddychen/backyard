@@ -66,6 +66,7 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     private static final Logger log = LoggerFactory.getLogger(ChatWebSocketHandler.class);
 
     private static final String USER_ID_ATTR = "X-Mock-User-Id";
+    private static final String SOCKET_ID_ATTR = "X-Socket-Id";
 
     /** Redis topic → local sessions subscribed to it. */
     private final ConcurrentHashMap<String, Set<WebSocketSession>> sessionsByTopic = new ConcurrentHashMap<>();
@@ -187,20 +188,17 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
         }
 
         // ── Message events (arrive on chat.channel.{id} or chat.user.{id}) ────
-        // topic = the channel or user-inbox topic — sessions are all subscribers.
-        // Skip the sender's own session for MESSAGE_CREATED; they already have
-        // the message from the REST 201 response.
+        // Skip the originating socket — it already has the data from the REST
+        // response. Other sockets of the same user (e.g. a second tab) still
+        // receive the push because they have a different socketId.
         Set<WebSocketSession> sessions = sessionsByTopic.get(topic);
         if (sessions == null || sessions.isEmpty())
             return;
-        String senderId = event.message() != null && event.message().getSenderId() != null
-                ? event.message().getSenderId().toString()
-                : null;
+        String originSocketId = event.socketId();
         TextMessage msg = new TextMessage(body);
         for (WebSocketSession session : sessions) {
-            if (senderId != null
-                    && event.type() == ChatEventType.MESSAGE_CREATED
-                    && senderId.equals(session.getAttributes().get(USER_ID_ATTR))) {
+            if (originSocketId != null
+                    && originSocketId.equals(session.getAttributes().get(SOCKET_ID_ATTR))) {
                 continue;
             }
             deliverToSession(session, msg, topic);
