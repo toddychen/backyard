@@ -67,7 +67,7 @@ public class RedisPubServiceImpl implements RedisPubService {
 
     @Override
     public void publishUserControlEvent(UUID userId, ChatEventType type, ChannelDTO channel) {
-        publishJson(USER_PREFIX + userId, new ChatEvent(type, null, null, channel));
+        publishJson(USER_PREFIX + userId, new ChatEvent(type, null, null, channel, null));
     }
 
     private void publishJson(String topic, ChatEvent event) {
