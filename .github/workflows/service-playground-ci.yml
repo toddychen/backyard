@@ -44,6 +44,20 @@ jobs:
           --health-interval=10s
           --health-timeout=5s
           --health-retries=5
+      cassandra:
+        image: cassandra:5.0
+        ports:
+          - 9042:9042
+        env:
+          CASSANDRA_CLUSTER_NAME: ci
+          MAX_HEAP_SIZE: 512M
+          HEAP_NEWSIZE: 128M
+        options: >-
+          --health-cmd="cqlsh -e 'describe cluster'"
+          --health-interval=15s
+          --health-timeout=10s
+          --health-retries=10
+          --health-start-period=60s
     env:
       # GitHub is deprecating the Node.js 20 runtime for actions; force Node.js 24 now to avoid warnings.
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
