@@ -17,7 +17,7 @@ const btnStyle = {
   border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 15, fontWeight: 600,
 }
 
-export default function NameModal({ children }) {
+export default function NameModal({ children, onConfirm }) {
   const stored = sessionStorage.getItem('collab_user_name')
   const [name, setName] = useState('')
   const [confirmed, setConfirmed] = useState(!!stored)
@@ -28,6 +28,7 @@ export default function NameModal({ children }) {
     if (!trimmed) return
     sessionStorage.setItem('collab_user_name', trimmed)
     setConfirmed(true)
+    onConfirm?.(trimmed)
   }
 
   if (confirmed) return children

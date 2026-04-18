@@ -19,7 +19,7 @@ function hashColor(str) {
 
 const editorStyles = `
   .collab-editor-wrap {
-    max-width: 720px; margin: 40px auto; padding: 0 16px;
+    max-width: 960px; margin: 24px auto; padding: 0 24px;
   }
   .collab-toolbar {
     display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap;
@@ -35,9 +35,9 @@ const editorStyles = `
     margin-left: auto; background: #f3f4f6; border-color: #d1d5db;
   }
   .tiptap {
-    min-height: 400px; background: #fff; border: 1px solid #e5e7eb;
-    border-radius: 8px; padding: 20px 24px; font-size: 16px;
-    line-height: 1.6; outline: none;
+    min-height: calc(100vh - 140px); background: #fff; border: 1px solid #e5e7eb;
+    border-radius: 8px; padding: 32px 40px; font-size: 16px;
+    line-height: 1.7; outline: none;
   }
   .tiptap h1 { font-size: 2em; font-weight: 700; margin: 0.5em 0; }
   .tiptap h2 { font-size: 1.5em; font-weight: 700; margin: 0.5em 0; }
@@ -75,7 +75,7 @@ function Toolbar({ editor }) {
   )
 }
 
-export default function Editor() {
+function EditorInner({ userName }) {
   const { id } = useParams()
   const navigate = useNavigate()
 
@@ -90,22 +90,19 @@ export default function Editor() {
     return () => provider.destroy()
   }, [provider])
 
-  const userName = sessionStorage.getItem('collab_user_name') || 'Anonymous'
-  const userColor = hashColor(userName)
-
   const editor = useEditor({
     extensions: [
       StarterKit.configure({ history: false }),
       Collaboration.configure({ document: ydoc }),
       CollaborationCursor.configure({
         provider,
-        user: { name: userName, color: userColor },
+        user: { name: userName, color: hashColor(userName) },
       }),
     ],
   })
 
   return (
-    <NameModal>
+    <>
       <style>{editorStyles}</style>
       <div className="collab-editor-wrap">
         <div className="collab-toolbar">
@@ -114,6 +111,17 @@ export default function Editor() {
         <Toolbar editor={editor} />
         <EditorContent editor={editor} />
       </div>
-    </NameModal>
+    </>
   )
+}
+
+export default function Editor() {
+  const [userName, setUserName] = useState(
+    () => sessionStorage.getItem('collab_user_name') || ''
+  )
+
+  if (!userName) {
+    return <NameModal onConfirm={setUserName}>{null}</NameModal>
+  }
+  return <EditorInner userName={userName} />
 }

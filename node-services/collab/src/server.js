@@ -23,7 +23,15 @@ if (REDIS_HOST) {
   )
 }
 
-const hocuspocus = Server.configure({ extensions })
+const hocuspocus = Server.configure({
+  extensions,
+  async onConnect({ documentName }) {
+    console.log(`[ws] connect  doc=${documentName}`)
+  },
+  async onDisconnect({ documentName }) {
+    console.log(`[ws] disconnect doc=${documentName}`)
+  },
+})
 
 const app = express()
 app.use(express.json())
