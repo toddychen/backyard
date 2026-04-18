@@ -1,0 +1,19 @@
+{
+  "name": "service-collab",
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js"
+  },
+  "dependencies": {
+    "@hocuspocus/extension-database": "^2.14.0",
+    "@hocuspocus/extension-redis": "^2.14.0",
+    "@hocuspocus/server": "^2.14.0",
+    "@prisma/client": "^6.6.0",
+    "express": "^4.21.2"
+  },
+  "devDependencies": {
+    "prisma": "^6.6.0"
+  }
+}

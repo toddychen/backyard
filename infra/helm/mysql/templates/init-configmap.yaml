@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-init-sql
+  labels:
+    app.kubernetes.io/name: {{ .Chart.Name }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+data:
+  01-collab.sql: |
+    CREATE DATABASE IF NOT EXISTS collab;
+    CREATE USER IF NOT EXISTS 'collab'@'%' IDENTIFIED BY '{{ .Values.collabPassword }}';
+    GRANT ALL PRIVILEGES ON collab.* TO 'collab'@'%';
+    FLUSH PRIVILEGES;

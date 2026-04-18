@@ -40,17 +40,22 @@ spec:
                 secretKeyRef:
                   name: {{ .Release.Name }}-secret
                   key: MYSQL_ROOT_PASSWORD
-          {{- if .Values.dataHostPath }}
           volumeMounts:
+            {{- if .Values.dataHostPath }}
             - name: mysql-data
               mountPath: /var/lib/mysql
-          {{- end }}
+            {{- end }}
+            - name: init-sql
+              mountPath: /docker-entrypoint-initdb.d
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
-      {{- if .Values.dataHostPath }}
       volumes:
+        {{- if .Values.dataHostPath }}
         - name: mysql-data
           hostPath:
             path: {{ .Values.dataHostPath }}
             type: DirectoryOrCreate
-      {{- end }}
+        {{- end }}
+        - name: init-sql
+          configMap:
+            name: {{ .Release.Name }}-init-sql

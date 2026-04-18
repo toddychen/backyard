@@ -13,6 +13,7 @@ user: playground
 # Override in values-kind.yaml — never commit real passwords here
 password: ""
 rootPassword: ""
+collabPassword: ""
 
 dataHostPath: ""
 

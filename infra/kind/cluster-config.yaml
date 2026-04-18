@@ -52,6 +52,10 @@ nodes:
       - containerPort: 30090
         hostPort: 30090
         protocol: TCP
+      # collab service
+      - containerPort: 32070
+        hostPort: 32070
+        protocol: TCP
   - role: worker
     extraMounts:
       - hostPath: /Users/toddy/.backyard

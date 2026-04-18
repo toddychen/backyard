@@ -1,0 +1,16 @@
+replicas: 2
+
+image:
+  repository: ghcr.io/<username>/service-collab
+  tag: <git-sha>
+  pullPolicy: IfNotPresent
+
+service:
+  type: NodePort
+  port: 2070
+  nodePort: 32070
+
+redisHost: redis.redis
+redisPort: "6379"
+
+databaseUrl: "mysql://collab:collab-kind@mysql.mysql:3306/collab"
