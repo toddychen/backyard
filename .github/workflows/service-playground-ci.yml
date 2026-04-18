@@ -75,6 +75,11 @@ jobs:
         run: |
           curl -sSL https://github.com/bufbuild/buf/releases/latest/download/buf-Linux-x86_64 \
             -o /usr/local/bin/buf && chmod +x /usr/local/bin/buf
+      - name: Init Cassandra schema
+        run: |
+          pip install cqlsh --quiet
+          cqlsh localhost 9042 -f infra/cassandra/schema.cql
+
       - name: Test
         env:
           BUF_TOKEN: ${{ secrets.BUF_API_TOKEN }}
