@@ -59,7 +59,7 @@ export default function DocumentList() {
           <li key={doc.id} style={styles.item} onClick={() => navigate(`/doc/${doc.id}`)}>
             <span style={styles.docTitle}>{doc.title}</span>
             <span style={styles.docDate}>
-              {new Date(doc.updated_at).toLocaleDateString()}
+              {new Date(doc.updatedAt).toLocaleDateString()}
             </span>
           </li>
         ))}
