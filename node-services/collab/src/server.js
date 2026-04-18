@@ -3,6 +3,7 @@ import { Redis } from '@hocuspocus/extension-redis'
 import { Database } from '@hocuspocus/extension-database'
 import express from 'express'
 import { createServer } from 'http'
+import { WebSocketServer } from 'ws'
 import { listDocuments, createDocument, fetchDocument, storeDocument } from './db.js'
 
 const REDIS_HOST = process.env.REDIS_HOST || ''
@@ -59,7 +60,12 @@ app.get('*', (_req, res) => {
 
 const httpServer = createServer(app)
 
-httpServer.on('upgrade', hocuspocus.handleUpgrade)
+const wss = new WebSocketServer({ noServer: true })
+httpServer.on('upgrade', (request, socket, head) => {
+  wss.handleUpgrade(request, socket, head, (ws) => {
+    hocuspocus.handleConnection(ws, request)
+  })
+})
 
 httpServer.listen(PORT, () => {
   console.log(`collab service listening on :${PORT}`)
