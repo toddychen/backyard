@@ -25,11 +25,11 @@ if (REDIS_HOST) {
 
 const hocuspocus = Server.configure({
   extensions,
-  async onConnect({ documentName }) {
-    console.log(`[ws] connect  doc=${documentName}`)
+  async onConnect({ documentName, socketId }) {
+    console.log(`[ws] connect    doc=${documentName} socket=${socketId}`)
   },
-  async onDisconnect({ documentName }) {
-    console.log(`[ws] disconnect doc=${documentName}`)
+  async onDisconnect({ documentName, socketId }) {
+    console.log(`[ws] disconnect doc=${documentName} socket=${socketId}`)
   },
 })
 

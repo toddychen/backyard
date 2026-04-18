@@ -25,6 +25,7 @@ export async function fetchDocument(id) {
 }
 
 export async function storeDocument(id, state) {
+  console.log(`[db] store doc=${id} bytes=${state.byteLength}`)
   await prisma.collabDocument.upsert({
     where: { id },
     update: { content: Buffer.from(state) },
