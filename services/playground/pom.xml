@@ -97,6 +97,13 @@
             <artifactId>commons-lang3</artifactId>
         </dependency>
 
+        <!-- Collection utilities: CollectionUtils.subtract() for set diff -->
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-collections4</artifactId>
+            <version>4.4</version>
+        </dependency>
+
         <!-- GCP Secret Manager client: loads API keys from GCP secrets in stage/prod -->
         <dependency>
             <groupId>com.google.cloud</groupId>
@@ -251,6 +258,19 @@
             <groupId>io.grpc</groupId>
             <artifactId>grpc-opentelemetry</artifactId>
             <version>${grpc.version}</version>
+        </dependency>
+
+        <!-- Leader election for driver simulator: RedisLockRegistry + LockRegistryLeaderInitiator -->
+        <dependency>
+            <groupId>org.springframework.integration</groupId>
+            <artifactId>spring-integration-redis</artifactId>
+        </dependency>
+
+        <!-- S2 geometry: cell ID computation and region covering for driver geo index -->
+        <dependency>
+            <groupId>com.google.geometry</groupId>
+            <artifactId>s2-geometry</artifactId>
+            <version>2.0.0</version>
         </dependency>
 
         <!-- gRPC stubs for Natural Language API. Used as an example of a gRPC client-->

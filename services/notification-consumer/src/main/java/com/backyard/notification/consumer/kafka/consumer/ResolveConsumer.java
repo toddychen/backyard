@@ -48,7 +48,7 @@ public class ResolveConsumer {
         this.sendProducer = sendProducer;
     }
 
-    @KafkaListener(topics = Topics.NOTIFICATION_RESOLVE)
+    @KafkaListener(topics = Topics.NOTIFICATION_RESOLVE, concurrency = "4")
     public void consume(ConsumerRecord<String, ResolveMessage> record) {
         var msg = record.value();
         log.info("Resolve received: eventId={} users={}", msg.getEventId(), msg.getUserIds().size());

@@ -44,7 +44,7 @@ public class FanOutConsumer {
         this.resolveProducer = resolveProducer;
     }
 
-    @KafkaListener(topics = Topics.NOTIFICATION_FANOUT)
+    @KafkaListener(topics = Topics.NOTIFICATION_FANOUT, concurrency = "4")
     public void consume(ConsumerRecord<String, FanoutMessage> record) {
         var msg = record.value();
         log.info("FanOut received: topic={} eventId={} range=[{}, {})",

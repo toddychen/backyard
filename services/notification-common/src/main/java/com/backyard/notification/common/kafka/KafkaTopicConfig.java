@@ -33,6 +33,7 @@ public class KafkaTopicConfig {
                 .partitions(16).replicas(1)
                 .config("retention.ms", "3600000") // 1 hour
                 .config("segment.bytes", "10485760") // 10MB — avoids 1GB pre-allocation in dev
+                .config("segment.index.bytes", "2097152") // 2MB index pre-allocation
                 .build();
     }
 
@@ -46,6 +47,7 @@ public class KafkaTopicConfig {
                 .partitions(16).replicas(1)
                 .config("retention.ms", "3600000") // 1 hour
                 .config("segment.bytes", "10485760") // 10MB — avoids 1GB pre-allocation in dev
+                .config("segment.index.bytes", "2097152") // 2MB index pre-allocation
                 .build();
     }
 
@@ -59,6 +61,7 @@ public class KafkaTopicConfig {
                 .partitions(16).replicas(1)
                 .config("retention.ms", "3600000") // 1 hour
                 .config("segment.bytes", "10485760") // 10MB — avoids 1GB pre-allocation in dev
+                .config("segment.index.bytes", "2097152") // 2MB index pre-allocation
                 .build();
     }
 
@@ -69,6 +72,7 @@ public class KafkaTopicConfig {
                 .partitions(8).replicas(1)
                 .config("retention.ms", "3600000") // 1 hour
                 .config("segment.bytes", "10485760") // 10MB — avoids 1GB pre-allocation in dev
+                .config("segment.index.bytes", "2097152") // 2MB index pre-allocation
                 .build();
     }
 

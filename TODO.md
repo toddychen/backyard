@@ -736,6 +736,68 @@ structures it uses, how message delivery works, and where its limits are.
 
 ---
 
+## Time-Series Database
+
+Explore time-series databases — what they are, how they work internally, typical
+query patterns, and which services they are the right fit for.
+
+**Motivating example:**
+Real-time traffic data: current and historical speed per road segment, updated
+every few minutes from GPS probe data. Queried as "what is the average speed on
+segment #48291 on Tuesday mornings between 8–9am?"
+
+**Questions to answer:**
+- What makes a time-series DB different from a relational DB for this workload?
+  (write volume, retention, downsampling, time-range queries)
+- How do databases like **InfluxDB**, **TimescaleDB** (PostgreSQL extension), and
+  **Apache Druid** store and index time-series data? What is a "measurement",
+  "tag", and "field" in InfluxDB terms?
+- How does **downsampling** work — automatically aggregating raw 1-minute data
+  into 1-hour or 1-day rollups to save storage while preserving query ability?
+- What is the **retention policy** — automatically expiring old raw data while
+  keeping downsampled summaries indefinitely?
+- How do time-range queries work efficiently — what index structure allows fast
+  scans over `WHERE time > now() - 1h`?
+- How does a time-series DB handle **high write throughput** (millions of data
+  points/sec) without the write amplification of a B-tree index?
+
+**Query pattern examples (traffic use case):**
+```sql
+-- Current speed on a segment
+SELECT last(speed) FROM road_speeds WHERE segment_id = '48291'
+
+-- Historical average by hour of week
+SELECT mean(speed) FROM road_speeds
+WHERE segment_id = '48291'
+GROUP BY time(1h), day_of_week
+
+-- Segments slower than usual right now
+SELECT segment_id, last(speed) / mean(speed) as ratio
+FROM road_speeds WHERE time > now() - 5m
+HAVING ratio < 0.5
+```
+
+**Fit assessment — when to use a time-series DB vs alternatives:**
+- vs Redis: Redis is better for the hot current-speed layer (TTL, O(1) lookup);
+  time-series DB is better for historical storage and aggregate queries
+- vs Cassandra: Cassandra handles high write throughput too, but lacks native
+  downsampling and time-range query optimization
+- vs MySQL: relational DBs struggle with the write volume and don't have
+  built-in retention/downsampling
+
+**What to implement (as playground experiment):**
+- Deploy InfluxDB or TimescaleDB locally
+- Write a data ingester that simulates road segment speed updates
+- Query historical averages and current speeds
+- Compare query performance vs a naive MySQL approach
+
+**Goal:**
+- Understand when time-series DBs are the right tool vs Redis, Cassandra, or SQL
+- Learn the data model (tags vs fields, retention policies, continuous queries)
+- Apply to traffic data use case as a concrete example
+
+---
+
 ## Kafka Internals — Message Queue Implementation
 
 Investigate how Kafka implements its message queue feature internally — the

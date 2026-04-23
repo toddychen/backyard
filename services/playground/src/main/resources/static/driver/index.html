@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Driver Tracker — San Jose</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <style>
+        html, body, #map { height: 100%; margin: 0; padding: 0; }
+
+        #overlay {
+            position: absolute; top: 10px; right: 10px; z-index: 1000;
+            background: rgba(0, 0, 0, 0.7); color: #fff;
+            padding: 8px 14px; border-radius: 6px;
+            font-family: monospace; font-size: 13px; line-height: 1.6;
+        }
+        #simBtn {
+            margin-top: 6px; width: 100%; padding: 4px 0;
+            border: none; border-radius: 4px; cursor: pointer;
+            font-family: monospace; font-size: 13px;
+        }
+
+        #route-panel {
+            position: absolute; top: 10px; left: 10px; z-index: 1000;
+            background: rgba(0, 0, 0, 0.7); color: #fff;
+            padding: 10px; border-radius: 6px;
+            font-family: monospace; font-size: 13px;
+            display: flex; flex-direction: column; gap: 6px; min-width: 180px;
+        }
+        .route-btn {
+            padding: 5px 8px; border: none; border-radius: 4px; cursor: pointer;
+            font-family: monospace; font-size: 13px; background: #555; color: #fff;
+        }
+        .route-btn:disabled { opacity: 0.4; cursor: default; }
+        .route-btn.active { background: #2980b9; }
+        #route-hint { font-size: 11px; color: #aaa; min-height: 14px; }
+        #route-options { display: flex; flex-direction: column; gap: 4px; }
+        .route-option {
+            padding: 4px 6px; border-radius: 3px; cursor: pointer;
+            background: #333; font-size: 12px;
+        }
+        .route-option.selected { background: #2980b9; }
+        .route-option:hover { background: #444; }
+    </style>
+</head>
+<body>
+<div id="map"></div>
+
+<div id="route-panel">
+    <div style="display:flex; gap:6px;">
+        <button class="route-btn" id="btnOrigin" onclick="setMode('origin')">Set Origin</button>
+        <button class="route-btn" id="btnDest" onclick="setMode('destination')">Set Dest</button>
+    </div>
+    <div style="display:flex; gap:6px;">
+        <button class="route-btn" id="btnCalc" onclick="calculateRoute()" disabled>Calculate Route</button>
+        <button class="route-btn" id="btnClear" onclick="clearAll()">Clear</button>
+    </div>
+    <div id="route-hint"></div>
+    <div id="route-options"></div>
+</div>
+
+<div id="overlay">
+    <div id="status">Connecting…</div>
+    <div id="count"></div>
+    <button id="simBtn" onclick="toggleSimulator()">…</button>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@stomp/stompjs@7/bundles/stomp.umd.min.js"></script>
+<script src="/driver/app.js"></script>
+</body>
+</html>

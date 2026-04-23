@@ -30,7 +30,7 @@ import com.backyard.playground.data.model.chat.ReplyDTO;
 import com.backyard.playground.data.model.chat.SendMessageInputDTO;
 import com.backyard.playground.data.model.chat.SendReplyInputDTO;
 import com.backyard.playground.exception.ConflictException;
-import com.backyard.playground.server.websocket.RedisPubService;
+import com.backyard.playground.server.websocket.chat.RedisPubService;
 import com.backyard.playground.service.chat.ChannelService;
 import com.backyard.playground.service.chat.ChatService;
 import org.springframework.security.crypto.password.PasswordEncoder;

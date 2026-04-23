@@ -1,4 +1,4 @@
-package com.backyard.playground.server.websocket;
+package com.backyard.playground.server.websocket.chat;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;

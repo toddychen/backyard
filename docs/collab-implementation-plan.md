@@ -30,12 +30,14 @@ solved here using a production-grade CRDT approach.
 | Frontend hosting | Served from collab pods | Simplest deployment; one service, one Dockerfile |
 | Cross-pod fan-out | Redis pub/sub (`@hocuspocus/extension-redis`) | Existing Redis; makes collab pods fully stateless |
 | Hot state | Redis key per document | Fast load on client join; no DB hit for active docs |
-| Cold persistence | MySQL (LONGBLOB) | Existing MySQL in playground; durable; `mysql2` npm package |
-| Table creation | `CREATE TABLE IF NOT EXISTS` on startup | Self-contained; no separate migration step |
-| User identity | Name input modal → sessionStorage | Tab-scoped; two tabs = two users; no auth complexity for v1 |
+| Cold persistence | MySQL via Prisma ORM | Existing MySQL; Prisma handles schema + type-safe queries |
+| DB schema management | `prisma db push` on pod startup | Idempotent; no separate migration step for v1 |
+| Database | Separate `collab` DB + `collab` user | Isolated from playground; dedicated credentials |
+| User identity | Name input modal → `sessionStorage` | Tab-scoped; two tabs = two users; no auth complexity for v1 |
 | Cursor colour | Auto-assigned from name hash | Deterministic; no user choice needed |
-| Auth | Hocuspocus hook → Spring Boot JWT endpoint | Reuse existing JWT infrastructure |
+| Auth | None — public site | v1 simplicity; no JWT wiring needed |
 | Service location | New `node-services/collab/` directory | Separate from Maven-managed `services/` Java projects |
+| Internal port | 2070 | Avoids conflicts; not a well-known port |
 
 ---
 
@@ -46,6 +48,7 @@ Browser (React SPA)
    │
    ├── GET /api/documents         REST — list documents
    ├── POST /api/documents        REST — create document
+   ├── GET /health                Health probe
    ├── GET /doc/:id               SPA route — editor page
    │
    └── WebSocket ws://host/       Yjs sync (Hocuspocus protocol)
@@ -55,23 +58,23 @@ Browser (React SPA)
    │   Hocuspocus (Node.js)   │   node-services/collab/
    │                          │
    │  Express REST routes      │   GET/POST /api/documents
-   │  Express static serve     │   serves React build
-   │  WebSocket upgrade        │   Yjs protocol handler
+   │  Express static serve     │   serves React build from public/
+   │  WebSocketServer          │   ws upgrade → hocuspocus.handleConnection
    │                          │
    │  @hocuspocus/extension-  │
    │    redis                  │──── Redis pub/sub + hot state key
    │  @hocuspocus/extension-  │
-   │    database               │──── MySQL LONGBLOB (fetch / store)
+   │    database               │──── MySQL LONGBLOB (fetch / store via Prisma)
    │                          │
-   │  onAuthenticate hook      │──── HTTP → Spring Boot JWT validate
+   │  onConnect / onDisconnect │──── console.log with socketId
    └──────────────────────────┘
               │
    ┌──────────┴──────────┐
    │                     │
    ▼                     ▼
-Redis                  MySQL
+Redis                  MySQL (collab DB)
 (hot doc state,        (cold doc state,
- pub/sub bus)           documents table)
+ pub/sub bus)           collab_documents table)
 ```
 
 ---
@@ -81,25 +84,32 @@ Redis                  MySQL
 ```
 backyard/
 ├── services/                      (Maven-managed Java services — unchanged)
-│   └── playground/                (Spring Boot — add JWT validate endpoint)
 │
-├── node-services/                 (new — Node.js services)
+├── node-services/                 (Node.js services)
 │   └── collab/
 │       ├── src/
-│       │   ├── server.js          Hocuspocus + Express (REST + static)
-│       │   └── db.js              MySQL helpers (initDB, list, create, fetch, store)
+│       │   ├── server.js          Hocuspocus + Express + WebSocketServer
+│       │   └── db.js              Prisma helpers (list, create, fetch, store)
 │       ├── client/                React SPA (Vite)
 │       │   ├── src/
 │       │   │   ├── main.jsx
 │       │   │   ├── App.jsx        Router: / and /doc/:id
 │       │   │   ├── DocumentList.jsx
-│       │   │   ├── Editor.jsx     TipTap + HocuspocusProvider
+│       │   │   ├── Editor.jsx     gate component + EditorInner (TipTap)
 │       │   │   └── NameModal.jsx  sessionStorage name prompt
 │       │   ├── index.html
+│       │   ├── vite.config.js     proxies /api and /ws to :2070 in dev
 │       │   └── package.json
+│       ├── prisma/
+│       │   └── schema.prisma      CollabDocument model
 │       ├── package.json
-│       └── Dockerfile
+│       └── Dockerfile             multi-stage: client build → production
 │
+├── infra/helm/collab/             Helm chart (NodePort 32070, 2 replicas)
+├── scripts/
+│   ├── deploy-service-collab-kind.sh
+│   ├── run-service-collab-dev.sh
+│   └── collab-mysql-init-kind.sh  one-time DB/user setup for existing cluster
 └── docs/
     ├── collaborative-editing-theory.md   (OT + CRDT reference)
     └── collab-implementation-plan.md     (this file)
@@ -133,34 +143,26 @@ handled by the provider and awareness layers.
 
 **Responsibility:**
 - Renders the document as DOM — paragraphs, bold, italic, headings, lists
-- Translates user input (typing, formatting toolbar, keyboard shortcuts) into
-  ProseMirror transactions
-- The `@tiptap/extension-collaboration` binding keeps ProseMirror's internal
-  document model in sync with `Y.XmlFragment` (two-way binding)
-- The `@tiptap/extension-collaboration-cursor` extension reads cursor awareness
-  data from the Hocuspocus provider and renders other users' cursors in the DOM
-- Uses surgical DOM patching (not full re-render) on every remote update —
-  only the changed text nodes are updated
+- Translates user input (typing, formatting toolbar) into ProseMirror transactions
+- `@tiptap/extension-collaboration` keeps ProseMirror in sync with `Y.XmlFragment`
+- `@tiptap/extension-collaboration-cursor` renders other users' cursors using
+  awareness data from the Hocuspocus provider
+- Uses surgical DOM patching on every remote update
 
-**What TipTap does NOT do:** CRDT merge, sync, persistence — Yjs + Hocuspocus
-handle those.
+**What TipTap does NOT do:** CRDT merge, sync, persistence.
 
 ---
 
 ### HocuspocusProvider (client side)
 
 **What it is:** The client-side WebSocket adapter (`@hocuspocus/provider`).
-Runs in the browser.
 
 **Responsibility:**
 - Opens and maintains the WebSocket connection to the Hocuspocus server
 - Sends Yjs binary update blobs to the server on every local change
 - Receives binary update blobs from the server, feeds them to the local Y.Doc
 - Sends and receives **awareness** data (cursor position, user name, colour)
-  on a separate channel alongside the doc updates
-- Handles reconnect with exponential backoff
-- On reconnect: sends the full Y.Doc state diff so the server can merge any
-  changes made while offline
+- Handles reconnect with exponential backoff; sends full Y.Doc diff on reconnect
 
 ---
 
@@ -168,39 +170,35 @@ Runs in the browser.
 
 **What it is:** A Node.js WebSocket server built specifically for Yjs.
 
+**WebSocket integration:** The `ws` library handles the HTTP upgrade event;
+each upgraded connection is passed to `hocuspocus.handleConnection(ws, request)`.
+`handleUpgrade` does not exist on the Hocuspocus instance — `handleConnection`
+is the correct API for external HTTP server integration.
+
 **Responsibility:**
 - Accepts WebSocket connections, one per (client, document) pair
-- Runs `onAuthenticate` hook before allowing any connection:
-  validates the JWT by calling Spring Boot's `/api/v1/collab/auth/validate`
-- Maintains an in-memory set of connected clients per document (the "room")
-- When a binary update arrives from client A:
-  - Forwards it to all other clients connected to the same document (fan-out)
-  - Passes it to `extension-redis` and `extension-database` for persistence
-- When a new client joins a document:
-  - Loads the current Y.Doc state from `extension-redis` (or falls back to
-    `extension-database`) and sends it as the initial state
+- No authentication — site is public; `onAuthenticate` hook not used
+- Maintains an in-memory set of connected clients per document
+- When a binary update arrives from a client: fans out to all other clients
+  on the same pod and delegates to `extension-redis` and `extension-database`
+- When a new client joins: loads current Y.Doc state from Redis (or MySQL fallback)
+- Logs connect/disconnect with `socketId` (UUID per connection) and `documentName`
 
 ---
 
 ### `@hocuspocus/extension-redis`
 
-**What it is:** A Hocuspocus plugin wrapping `ioredis`.
-
-**Two responsibilities:**
+**What it is:** A Hocuspocus plugin for Redis integration.
 
 **Hot state storage:**
-- Keeps Redis key `hocuspocus:doc:{docId}` updated with the latest Y.Doc
-  binary blob after every update
-- On new client join: serves the blob from Redis (fast, avoids MySQL hit)
-- Redis TTL cleans up keys for inactive documents automatically
+- Keeps Redis key `hocuspocus:doc:{docId}` updated with the latest Y.Doc blob
+- Serves the blob on new client join (avoids MySQL hit for active documents)
 
 **Cross-pod pub/sub:**
-- Subscribes to Redis channel `hocuspocus:channel:{docId}` when any client
-  is connected to that document on this pod
-- When this pod receives an update: publishes it to the Redis channel
-- When another pod publishes to the channel: this pod receives it and
-  forwards to all locally connected clients
-- This makes all collab pods fully stateless — any pod can serve any client
+- Subscribes to Redis channel `hocuspocus:channel:{docId}` per active document
+- Publishes updates received on this pod to the channel
+- Receives updates published by other pods and forwards to local clients
+- Makes all collab pods fully stateless
 
 ---
 
@@ -209,101 +207,109 @@ Runs in the browser.
 **What it is:** A Hocuspocus plugin for durable persistence.
 
 **Responsibility:**
-- Calls your `fetch(docId)` callback when Redis misses (cold start, Redis
-  restart, first ever load of a document)
-- Calls your `store(docId, state)` callback periodically and when the last
-  client leaves a document
-- `fetch` returns the MySQL LONGBLOB as a `Uint8Array` (or null for a new doc)
-- `store` writes the Y.Doc binary blob to MySQL
+- Calls `fetch(docId)` on Redis miss (cold start, first load)
+- Calls `store(docId, state)` periodically and when the last client disconnects
+- `fetch` → `db.fetchDocument(id)` → Prisma query → returns `Bytes` or null
+- `store` → `db.storeDocument(id, state)` → Prisma upsert → MySQL LONGBLOB
+- Logs `[db] store doc=<id> bytes=<n>` on every persist
 
 ---
 
 ### Express (in `server.js`)
 
 **Responsibility:**
-- Serves the React SPA build from `public/` (static files)
-- `GET *` falls back to `public/index.html` for client-side routing
-- REST routes:
-  - `GET /api/documents` → `db.listDocuments()` → list of `{id, title, createdAt}`
-  - `POST /api/documents` → `db.createDocument(title)` → `{id, title}`
-- Shares the same `http.Server` instance with Hocuspocus for WebSocket upgrades
-  (Hocuspocus intercepts the upgrade request on the same port)
+- `GET /health` → `{ status: 'ok' }` for k8s liveness/readiness probes
+- `GET /api/documents` → `db.listDocuments()`
+- `POST /api/documents` → `db.createDocument(title)`
+- `app.use(express.static('public'))` → serves Vite build output
+- `GET *` → `public/index.html` fallback for SPA client-side routing
+- Shares the `http.Server` instance with the `WebSocketServer`
 
 ---
 
-### MySQL (`mysql2` npm package)
+### Prisma ORM (`@prisma/client`)
 
-**Responsibility:**
-- Durable storage for document content and metadata
-- `documents` table auto-created on server startup via `CREATE TABLE IF NOT EXISTS`
-- Schema:
-  ```sql
-  id         VARCHAR(36)   PRIMARY KEY        -- UUID
-  title      VARCHAR(255)  NOT NULL           -- display name
-  owner_id   VARCHAR(36)   NOT NULL           -- 'anonymous' for v1
-  content    LONGBLOB                         -- Yjs binary blob (Y.Doc state)
-  created_at DATETIME      DEFAULT NOW()
-  updated_at DATETIME      ON UPDATE NOW()
-  ```
-- `content` column stores the raw `Uint8Array` from `Y.encodeStateAsUpdate(ydoc)`
-- On read: returned as `Buffer` by `mysql2`, passed directly to Yjs as
-  `Uint8Array` — no parsing, no serialisation
+**Replaces:** `mysql2` raw SQL driver.
+
+**Schema** (`prisma/schema.prisma`):
+```prisma
+model CollabDocument {
+  id        String   @id @default(uuid())
+  title     String   @default("Untitled")
+  content   Bytes?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@map("collab_documents")
+}
+```
+
+**Table management:** `npx prisma db push` runs at pod startup (CMD in Dockerfile).
+Idempotent — creates the table on first run, no-op on subsequent runs.
+
+**`npx prisma generate`** runs at Docker build time to generate the typed client
+into `node_modules/@prisma/client`. The schema file is only used at build time
+and during `db push` — not at runtime.
+
+**DB helpers in `db.js`:**
+- `listDocuments()` — `findMany` ordered by `updatedAt DESC`
+- `createDocument(title)` — `create` with auto UUID and title
+- `fetchDocument(id)` — `findUnique`, returns `Bytes` or null
+- `storeDocument(id, state)` — `upsert` (insert or update content)
+
+---
+
+### MySQL
+
+**Database:** `collab` (separate from `playground`)
+**User:** `collab` / `collab-kind`
+
+**Two setup paths:**
+- **Existing cluster:** run `scripts/collab-mysql-init-kind.sh` once as root
+- **Fresh cluster:** `infra/helm/mysql/templates/init-configmap.yaml` is mounted
+  at `/docker-entrypoint-initdb.d/` — MySQL runs the SQL automatically on first boot
 
 ---
 
 ### Redis
 
-**Two separate uses:**
+**Two separate uses, both managed by `@hocuspocus/extension-redis`:**
 
-1. **Hot document state** — managed entirely by `@hocuspocus/extension-redis`.
-   Key per document, value = Yjs binary blob. Updated on every edit.
+1. **Hot document state** — key per document, value = Yjs binary blob
+2. **Pub/sub fan-out** — channel per document, cross-pod update delivery
 
-2. **Pub/sub fan-out** — also managed by `@hocuspocus/extension-redis`.
-   Channel per document. Each pod publishes updates it receives, subscribes
-   to updates from other pods. Makes the collab tier horizontally scalable.
-
-The existing Redis instance from `services/playground` is reused. The collab
-service uses a dedicated key prefix (`hocuspocus:`) to avoid collisions with
-playground's JWT denylist and cache keys.
-
----
-
-### Spring Boot (playground) — JWT Validate Endpoint
-
-**New endpoint added:**
-```
-POST /api/v1/collab/auth/validate
-Authorization: Bearer <jwt>
-
-200 OK  { "userId": "...", "email": "..." }
-401     Unauthorized
-```
-
-**Responsibility:** Validates the Bearer token using the existing
-`JwtAuthenticationFilter` logic and the Redis JWT denylist check. Returns
-user info on success. Hocuspocus calls this endpoint inside `onAuthenticate`
-before any WebSocket connection is permitted.
-
-This reuses all existing auth infrastructure — no new auth logic.
+The existing Redis instance from the kind cluster is reused. Hocuspocus uses
+the `hocuspocus:` key prefix, avoiding collisions with playground's keys.
 
 ---
 
 ### React SPA (client)
 
-**Pages and components:**
+**`/` — DocumentList:**
+- `GET /api/documents` on mount → renders list with title and last-updated date
+  (uses `doc.updatedAt` — Prisma returns camelCase field names)
+- "New Document" button → `prompt()` for title → `POST /api/documents` →
+  navigate to `/doc/:id`
 
-`/` — **DocumentList:**
-- `GET /api/documents` on mount → renders list of document titles
-- "New Document" button → `POST /api/documents` → navigate to `/doc/:id`
+**`/doc/:id` — Editor (two-component pattern):**
 
-`/doc/:id` — **Editor:**
-- Wraps everything in `NameModal` — checks `sessionStorage.getItem('userName')`
-- If absent: blocks rendering, shows input modal, stores name in `sessionStorage`
-  (`sessionStorage` is tab-scoped — each tab has an independent identity)
-- Creates `Y.Doc` and `HocuspocusProvider` bound to the document ID
-- Initialises TipTap with `Collaboration` + `CollaborationCursor` extensions
-- Cursor colour is `hashColor(userName)` — deterministic from name, no choice needed
-- Renders TipTap's `EditorContent` and a simple formatting toolbar
+`Editor` (outer gate):
+- Reads `sessionStorage.getItem('collab_user_name')` into React state
+- If empty: renders `NameModal` — blocks until name is entered and confirmed
+- If set: renders `EditorInner` with the confirmed name
+
+`EditorInner` (only mounts after name is confirmed):
+- Creates `Y.Doc` and `HocuspocusProvider` via `useMemo([id])`
+- Destroys provider on unmount via `useEffect`
+- Initialises TipTap with `StarterKit` (history disabled — Y.UndoManager handles
+  undo), `Collaboration`, `CollaborationCursor`
+- Cursor colour: `hashColor(userName)` — deterministic HSL from name string
+- Renders formatting toolbar (Bold, Italic, H1, H2, bullet list, ordered list)
+  and `EditorContent`
+
+**Why two components:** `useEditor` is called at component mount time.
+If name check and editor init were in the same component, the cursor would
+always be set to 'Anonymous' (sessionStorage is empty on first render, before
+the modal confirms). Splitting ensures `EditorInner` only mounts with a real name.
 
 ---
 
@@ -314,34 +320,38 @@ This reuses all existing auth infrastructure — no new auth logic.
 ```
 User opens http://host/
   → Express serves index.html (React SPA)
-  → React router renders DocumentList
-  → GET /api/documents → Express → MySQL SELECT → list rendered
+  → React Router renders DocumentList
+  → GET /api/documents → Express → Prisma → MySQL SELECT → list rendered
+  → updatedAt displayed as toLocaleDateString()
 ```
 
 ### Creating a new document
 
 ```
 User clicks "New Document"
-  → POST /api/documents → Express → MySQL INSERT (id=UUID, title="Untitled")
+  → browser prompt() for title
+  → POST /api/documents → Express → Prisma create (auto UUID)
   → Response: { id, title }
   → React navigates to /doc/{id}
 ```
 
-### Joining a document for the first time (tab 1)
+### Joining a document (tab 1)
 
 ```
 /doc/{id} renders Editor
-  → NameModal checks sessionStorage — empty → shows name input
-  → User types "Alice" → sessionStorage.setItem("userName", "Alice")
-  → NameModal renders children
+  → sessionStorage empty → NameModal renders
+  → User types "Alice" → sessionStorage.setItem('collab_user_name', 'Alice')
+  → NameModal calls onConfirm('Alice') → Editor state updates → EditorInner mounts
 
-HocuspocusProvider opens WebSocket ws://host/
-  → Hocuspocus server receives connection for document {id}
-  → onAuthenticate: POST to Spring Boot /api/v1/collab/auth/validate
-    → 200 OK { userId, email }  (or 401 → reject)
+EditorInner:
+  → Y.Doc + HocuspocusProvider created (useMemo)
+  → WebSocket ws://host/ opened (socketId = UUID assigned by Hocuspocus)
+  → [ws] connect doc={id} socket={uuid} logged on server
+
   → extension-redis: check Redis "hocuspocus:doc:{id}"
-    → miss (new doc) → extension-database: SELECT content FROM documents WHERE id={id}
+    → miss (new doc) → extension-database: Prisma findUnique
     → null (new doc) → send empty Y.Doc to client
+
   → subscribe to Redis channel "hocuspocus:channel:{id}"
 
 TipTap initialises with empty Y.Doc → blank editor
@@ -350,52 +360,51 @@ TipTap initialises with empty Y.Doc → blank editor
 ### Second user joins (tab 2, different pod in k8s)
 
 ```
-/doc/{id} renders → NameModal → "Bob"
+/doc/{id} → NameModal → "Bob" → EditorInner mounts
 
 HocuspocusProvider opens WebSocket to pod 2
-  → onAuthenticate: validates JWT
   → extension-redis: check Redis "hocuspocus:doc:{id}"
     → hit (Alice's edits are in Redis) → send current Y.Doc blob to Bob
   → subscribe to Redis channel "hocuspocus:channel:{id}"
 
 TipTap initialises with existing content → Bob sees Alice's work
-Awareness: Bob's cursor appears in Alice's editor (and vice versa)
+CollaborationCursor: Bob's cursor appears in Alice's editor (and vice versa)
 ```
 
 ### Editing (real-time sync)
 
 ```
 Alice types "Hello":
-  TipTap → Y.XmlFragment mutation → Yjs encodes binary update
-  HocuspocusProvider sends update blob over WebSocket to pod 1
+  TipTap → Y.XmlFragment mutation → Yjs binary update blob
+  HocuspocusProvider sends blob over WebSocket to pod 1
 
 Pod 1 (Alice's pod):
-  Receives update
+  hocuspocus.handleConnection receives update
   → extension-redis: update Redis key "hocuspocus:doc:{id}"
   → extension-redis: publish to Redis channel "hocuspocus:channel:{id}"
-  → extension-database: (batched) schedule MySQL write
+  → extension-database: schedule MySQL write (debounced)
+  → [db] store doc={id} bytes={n} logged on store
 
 Redis channel fan-out:
   Pod 2 (Bob's pod) receives published update
-  → forwards binary blob to Bob over Bob's WebSocket
+  → forwards binary blob to Bob's WebSocket
 
 Bob's browser:
-  HocuspocusProvider receives blob → Y.applyUpdate(ydoc, blob)
-  → Y.XmlFragment updated → TipTap binding detects change
-  → ProseMirror transaction → minimal DOM patch → Bob sees "Hello"
+  Y.applyUpdate(ydoc, blob) → Y.XmlFragment updated
+  → TipTap ProseMirror transaction → minimal DOM patch → Bob sees "Hello"
 ```
 
 ### Persisting and reloading
 
 ```
-All users close the document (last client disconnects from pod):
-  → Hocuspocus triggers extension-database store callback
-  → MySQL UPDATE documents SET content=<blob>, updated_at=NOW()
+Last client disconnects from document:
+  → extension-database store callback fires
+  → db.storeDocument(id, state) → Prisma upsert → MySQL LONGBLOB
 
 User refreshes page:
   → HocuspocusProvider reconnects
-  → Redis may still have hot state → served immediately
-  → OR Redis expired → MySQL fetch → blob sent to client
+  → Redis hot state hit → served immediately
+  → OR Redis expired → Prisma findUnique → blob sent to client
   → TipTap initialises with saved content ✓
 ```
 
@@ -406,67 +415,84 @@ User refreshes page:
 ```
 kind cluster (local)
 ├── collab Deployment   (2 replicas — to test Redis fan-out)
-│   image: node-services/collab Dockerfile
-│   port: 1234
-│   env: REDIS_HOST, MYSQL_HOST, MYSQL_PASS, PLAYGROUND_URL
+│   image: ghcr.io/toddychen/service-collab:<sha>
+│   port: 2070
+│   env: REDIS_HOST, REDIS_PORT, DATABASE_URL
+│   startup: prisma db push && node src/server.js
 │
-├── playground Deployment (2 replicas)
-│   port: 8080
-│
+├── playground Deployment (2 replicas, port 8080)
 ├── Redis pod            (1 replica — shared)
-├── MySQL pod            (1 replica — shared)
+├── MySQL pod            (1 replica — collab + playground DBs)
 │
-└── nginx ingress
-    annotations:
-      proxy-read-timeout: "3600"   ← required for WebSocket
-      proxy-send-timeout: "3600"
-    routes:
-      /api/*     → playground-service:8080    (Spring Boot REST)
-      /*         → collab-service:1234        (React SPA + WS + collab REST)
+└── NodePort: 32070 (host) → 32070 (kind node) → 2070 (pod)
+    (port-forward used until cluster is recreated with 32070 in extraPortMappings)
 ```
 
-**Scaling test:** with 2 collab pods, two browser tabs will likely land on
-different pods. Edits from tab 1 must appear in tab 2 via Redis pub/sub.
-Verify in pod logs — each pod should log the Redis publish/receive events.
+**Scaling test:** 2 collab pods → two browser tabs land on different pods.
+Edits from tab 1 appear in tab 2 via Redis pub/sub.
+Verify with: `kubectl -n collab logs -f <pod>` — watch `[ws] connect` and
+`[db] store` lines on each pod.
 
 ---
 
 ## Dockerfile (node-services/collab/)
 
 ```dockerfile
-# Stage 1: build React SPA
-FROM node:20-alpine AS client-build
-WORKDIR /app/client
+# Stage 1: build React SPA (client has its own package.json and dev deps)
+# Vite and React source never reach the final image
+FROM node:24-alpine AS client-builder
+WORKDIR /build/client
 COPY client/package*.json ./
 RUN npm ci
 COPY client/ ./
-RUN npm run build          # outputs to client/dist/
+RUN npm run build
 
-# Stage 2: production server
-FROM node:20-alpine
+# Stage 2: production server — only server deps + compiled client bundle
+FROM node:24-alpine AS production
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci --omit=dev
+RUN npm ci
+COPY prisma/ ./prisma/
+# Generate Prisma client into node_modules at build time (reads schema.prisma)
+RUN npx prisma generate
 COPY src/ ./src/
-COPY --from=client-build /app/client/dist ./public   # React build → public/
-EXPOSE 1234
-CMD ["node", "src/server.js"]
+# Rescue compiled React bundle from stage 1 into public/
+COPY --from=client-builder /build/client/dist ./public
+EXPOSE 2070
+# Push schema to DB (idempotent) then start the server
+CMD ["sh", "-c", "npx prisma db push && node src/server.js"]
+```
+
+---
+
+## CI/CD
+
+**GitHub Actions:** `.github/workflows/service-collab-docker.yml`
+- Triggers on push to `main` when `node-services/collab/**` changes
+- Multi-platform build: `linux/amd64,linux/arm64`
+- Pushes to `ghcr.io/toddychen/service-collab:<git-sha>`
+- No Java/Maven steps — entire build happens inside the Dockerfile
+
+**Deploy to kind:**
+```bash
+./scripts/deploy-service-collab-kind.sh <git-sha>
+kubectl -n collab port-forward svc/service-collab 2070:2070
 ```
 
 ---
 
 ## Verification Checklist
 
-- [ ] `node src/server.js` starts and auto-creates `documents` table in MySQL
-- [ ] `GET /api/documents` returns empty array for fresh DB
-- [ ] `POST /api/documents` creates a row, returns `{id, title}`
-- [ ] React SPA loads at `/`, shows document list
-- [ ] Clicking "New Document" navigates to `/doc/:id`
-- [ ] Name modal appears, stores name in `sessionStorage`
-- [ ] TipTap editor renders with empty content
-- [ ] Open same `/doc/:id` in second tab → name modal → second cursor visible
-- [ ] Type in tab 1 → text appears in tab 2 in real time
-- [ ] Refresh tab 1 → content reloaded from MySQL (or Redis)
+- [x] Prisma `db push` creates `collab_documents` table on first pod start
+- [x] `GET /health` returns `{ status: 'ok' }`
+- [x] `GET /api/documents` returns empty array for fresh DB
+- [x] `POST /api/documents` creates a row, returns `{id, title}`
+- [x] React SPA loads at `/`, shows document list with correct dates
+- [x] Clicking "New Document" navigates to `/doc/:id`
+- [x] Name modal appears on first visit, stores name in `sessionStorage`
+- [x] TipTap editor renders with correct user name in cursor (not 'Anonymous')
+- [x] Open same `/doc/:id` in second tab → second cursor visible with correct name
+- [x] Type in tab 1 → text appears in tab 2 in real time
+- [x] Refresh tab 1 → content reloaded from MySQL/Redis
 - [ ] Deploy 2 collab pods to kind → confirm edits cross pods via Redis logs
 - [ ] Kill one pod → surviving pod serves reconnected client, no data loss
-- [ ] Invalid JWT → WebSocket connection rejected with 401

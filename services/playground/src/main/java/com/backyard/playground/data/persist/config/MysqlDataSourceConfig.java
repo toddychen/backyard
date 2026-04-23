@@ -15,7 +15,6 @@ import org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter;
 import org.springframework.transaction.PlatformTransactionManager;
 
 import java.util.Map;
-
 import javax.sql.DataSource;
 
 /**
@@ -49,12 +48,7 @@ public class MysqlDataSourceConfig {
         em.setPackagesToScan("com.backyard.playground.data.persist.mysql");
         em.setPersistenceUnitName("mysql");
         em.setJpaVendorAdapter(new HibernateJpaVendorAdapter());
-        em.setJpaPropertyMap(
-                Map.of(
-                        "hibernate.hbm2ddl.auto",
-                        "update",
-                        "hibernate.dialect",
-                        "org.hibernate.dialect.MySQLDialect"));
+        em.setJpaPropertyMap(Map.of("hibernate.hbm2ddl.auto", "update"));
         return em;
     }
 

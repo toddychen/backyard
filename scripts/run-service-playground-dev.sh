@@ -13,6 +13,12 @@ echo "      GET http://localhost:2000/actuator/health/liveness"
 echo "      GET http://localhost:2000/actuator/health/readiness"
 echo ""
 
+EXTRA_ARGS=""
+if [[ "${1:-}" == "--info" ]]; then
+  EXTRA_ARGS="-Dspring-boot.run.arguments=--logging.level.root=INFO"
+fi
+
 ./mvnw -f "${SERVICE_DIR}/pom.xml" process-resources spring-boot:run \
-  -Dspring-boot.run.profiles=dev
+  -Dspring-boot.run.profiles=dev \
+  ${EXTRA_ARGS}
   # -Dspring-boot.run.jvmArguments="-Djdk.httpclient.HttpClient.log=requests"  # JDK transport-level request logging

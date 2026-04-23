@@ -33,7 +33,7 @@ public class RetryConsumer {
     }
 
     @RetryableTopic(attempts = "1", dltTopicSuffix = "-dlq")
-    @KafkaListener(topics = Topics.NOTIFICATION_RETRY)
+    @KafkaListener(topics = Topics.NOTIFICATION_RETRY, concurrency = "2")
     public void consume(ConsumerRecord<String, RetryMessage> record) {
         var msg = record.value();
         log.debug("Retry received: eventId={} userId={}", msg.getEventId(), msg.getDestination().getUserId());

@@ -30,7 +30,7 @@ public class SendConsumer {
         this.senderService = senderService;
     }
 
-    @KafkaListener(topics = Topics.NOTIFICATION_SEND)
+    @KafkaListener(topics = Topics.NOTIFICATION_SEND, concurrency = "4")
     public void consume(ConsumerRecord<String, SendMessage> record) {
         var msg = record.value();
         log.debug("Send received: eventId={} destinations={}", msg.getEventId(), msg.getDestinations().size());

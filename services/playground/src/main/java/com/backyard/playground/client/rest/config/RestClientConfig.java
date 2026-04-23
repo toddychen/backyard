@@ -2,6 +2,7 @@ package com.backyard.playground.client.rest.config;
 
 import com.backyard.playground.client.rest.AmbeePollenClient;
 import com.backyard.playground.client.rest.GooglePollenClient;
+import com.backyard.playground.client.rest.OsrmClient;
 import com.backyard.playground.client.rest.YahooSportsClient;
 import com.backyard.playground.client.rest.error.ClientStatusHandlers;
 import com.backyard.playground.client.rest.interceptor.LocaleInterceptor;
@@ -19,7 +20,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.core.env.Environment;
+import org.springframework.web.util.DefaultUriBuilderFactory;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
@@ -76,6 +79,23 @@ public class RestClientConfig {
         var factory = new JdkClientHttpRequestFactory(jdkClient);
         factory.setReadTimeout(Duration.ofSeconds(10));
         return factory;
+    }
+
+    @Bean
+    @Profile("!home")
+    public OsrmClient osrmClient(
+            JdkClientHttpRequestFactory httpRequestFactory,
+            @Value("${osrm.base-url}") String baseUrl) {
+        DefaultUriBuilderFactory uriFactory = new DefaultUriBuilderFactory(baseUrl);
+        uriFactory.setEncodingMode(DefaultUriBuilderFactory.EncodingMode.NONE);
+        RestClient restClient = RestClient.builder()
+                .uriBuilderFactory(uriFactory)
+                .requestFactory(httpRequestFactory)
+                .defaultHeader("Accept-Encoding", "identity")
+                .build();
+        return HttpServiceProxyFactory.builderFor(RestClientAdapter.create(restClient))
+                .build()
+                .createClient(OsrmClient.class);
     }
 
     @Bean
